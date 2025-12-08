@@ -6,10 +6,10 @@
       <div class="header-section">
         <h2>인기 콘텐츠</h2>
         <div class="mode-toggle">
-          <button :class="{ active: viewMode === 'table' }" @click="changeMode('table')" title="페이지 보기">
+          <button :class="{ active: viewMode === 'table' }" @click="handleChangeMode('table')" title="페이지 보기">
             <i class="fas fa-th-large"></i>
           </button>
-          <button :class="{ active: viewMode === 'infinite' }" @click="changeMode('infinite')" title="무한 스크롤">
+          <button :class="{ active: viewMode === 'infinite' }" @click="handleChangeMode('infinite')" title="무한 스크롤">
             <i class="fas fa-infinity"></i>
           </button>
         </div>
@@ -48,15 +48,21 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 import tmdb from '../api/tmdb'
+import { useMovieStore } from '../stores/movieStore' // Store import
+import { storeToRefs } from 'pinia'
 import Navbar from '../components/Navbar.vue'
 import MovieCard from '../components/MovieCard.vue'
 import MovieModal from '../components/MovieModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
 
+const store = useMovieStore()
+// [수정] Store의 viewMode를 반응형으로 가져옴
+const { viewMode } = storeToRefs(store)
+
 const movies = ref<any[]>([])
 const currentPage = ref(1)
 const totalPages = ref(1)
-const viewMode = ref<'table' | 'infinite'>('table')
+// const viewMode = ref... (제거됨) -> Store 사용
 const isLoading = ref(false)
 const observerElement = ref<HTMLElement | null>(null)
 const showTopBtn = ref(false)
@@ -82,22 +88,53 @@ const fetchMovies = async (page: number, isAppend: boolean) => {
   } catch (error) { console.error(error) } finally { isLoading.value = false }
 }
 
-const changeMode = (mode: 'table' | 'infinite') => { viewMode.value = mode; currentPage.value = 1; movies.value = []; window.scrollTo(0, 0); fetchMovies(1, false) }
-const changePage = (page: number) => { if (page < 1 || page > totalPages.value) return; currentPage.value = page; movies.value = []; window.scrollTo(0, 0); fetchMovies(page, false) }
+// [수정] 모드 변경 시 Store 함수 호출
+const handleChangeMode = (mode: 'table' | 'infinite') => {
+  store.setViewMode(mode) // Store에 저장
+  currentPage.value = 1
+  movies.value = []
+  window.scrollTo(0, 0)
+  fetchMovies(1, false)
+}
+
+const changePage = (page: number) => {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  movies.value = []
+  window.scrollTo(0, 0)
+  fetchMovies(page, false)
+}
 
 let observer: IntersectionObserver | null = null
 const initObserver = () => {
   if (observer) observer.disconnect()
-  observer = new IntersectionObserver((entries) => { if (entries[0].isIntersecting && !isLoading.value) { currentPage.value++; fetchMovies(currentPage.value, true) } })
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !isLoading.value) {
+      currentPage.value++
+      fetchMovies(currentPage.value, true)
+    }
+  })
   if (observerElement.value) observer.observe(observerElement.value)
 }
 
-watch(() => [viewMode.value, observerElement.value], () => { if (viewMode.value === 'infinite' && observerElement.value) { initObserver() } else { if (observer) observer.disconnect() } })
-onMounted(() => { fetchMovies(1, false); window.addEventListener('scroll', handleScroll) })
-onUnmounted(() => { if (observer) observer.disconnect(); window.removeEventListener('scroll', handleScroll) })
+// viewMode는 이제 Store 값이므로 그대로 감지 가능
+watch(() => [viewMode.value, observerElement.value], () => {
+  if (viewMode.value === 'infinite' && observerElement.value) { initObserver() }
+  else { if (observer) observer.disconnect() }
+})
+
+onMounted(() => {
+  fetchMovies(1, false)
+  window.addEventListener('scroll', handleScroll)
+})
+onUnmounted(() => {
+  if (observer) observer.disconnect()
+  window.removeEventListener('scroll', handleScroll)
+})
 </script>
 
 <style scoped>
+/* 기존 스타일 유지 */
 .popular-container { min-height: 100vh; color: white; position: relative; }
 .content { padding: 100px 4% 40px; }
 .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -111,17 +148,8 @@ onUnmounted(() => { if (observer) observer.disconnect(); window.removeEventListe
 .pagination button { background: #333; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-size: 1rem; transition: 0.2s; }
 .pagination button:hover:not(:disabled) { background: #555; }
 .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* [수정] 페이지 번호 가독성 확보 */
-.page-num {
-  font-weight: bold;
-  margin: 0 10px;
-  color: white; /* 다크 모드 기본 */
-}
-/* 라이트 모드일 때 검은색 */
-:global(body.light-mode) .page-num {
-  color: #333 !important;
-}
+.page-num { font-weight: bold; margin: 0 10px; color: white; }
+:global(body.light-mode) .page-num { color: #333 !important; }
 
 .observer-sentinel { height: 80px; text-align: center; margin-top: 20px; color: #888; display: flex; align-items: center; justify-content: center; }
 .loading-more { font-size: 1rem; color: #b3b3b3; }
