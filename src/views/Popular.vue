@@ -6,44 +6,33 @@
       <div class="header-section">
         <h2>인기 콘텐츠</h2>
         <div class="mode-toggle">
-          <button
-              :class="{ active: viewMode === 'table' }"
-              @click="changeMode('table')"
-              title="페이지 보기"
-          >
-            <i class="fas fa-th-large"></i>
-          </button>
-          <button
-              :class="{ active: viewMode === 'infinite' }"
-              @click="changeMode('infinite')"
-              title="무한 스크롤"
-          >
-            <i class="fas fa-infinity"></i>
-          </button>
+          <button :class="{ active: viewMode === 'table' }" @click="changeMode('table')" title="페이지 보기"><i class="fas fa-th-large"></i></button>
+          <button :class="{ active: viewMode === 'infinite' }" @click="changeMode('infinite')" title="무한 스크롤"><i class="fas fa-infinity"></i></button>
         </div>
       </div>
 
       <div class="grid-container">
-        <MovieCard
-            v-for="movie in movies"
-            :key="movie.id"
-            :movie="movie"
-            @click="openModal(movie)"
-        />
+        <MovieCard v-for="movie in movies" :key="movie.id" :movie="movie" @click="openModal(movie)" />
       </div>
 
       <div v-if="viewMode === 'table'" class="pagination">
+        <button :disabled="currentPage === 1" @click="changePage(1)" title="첫 페이지"><i class="fas fa-angle-double-left"></i></button>
         <button :disabled="currentPage === 1" @click="changePage(currentPage - 1)">이전</button>
-        <span class="page-num">{{ currentPage }} 페이지</span>
+        <span class="page-num">{{ currentPage }} / {{ totalPages }}</span>
         <button @click="changePage(currentPage + 1)">다음</button>
+        <button @click="changePage(totalPages)" title="마지막 페이지"><i class="fas fa-angle-double-right"></i></button>
       </div>
 
       <div v-if="viewMode === 'infinite'" ref="observerElement" class="observer-sentinel">
-        <p v-if="isLoading" class="loading-text">
-          <i class="fas fa-spinner fa-spin"></i> 로딩 중...
-        </p>
+        <p v-if="isLoading">로딩 중...</p>
       </div>
     </div>
+
+    <transition name="fade">
+      <button v-show="showTopBtn" class="top-btn" @click="scrollToTop">
+        <i class="fas fa-arrow-up"></i>
+      </button>
+    </transition>
 
     <MovieModal v-if="showModal" :movie="selectedMovie" @close="showModal = false" />
   </div>
@@ -58,130 +47,86 @@ import MovieModal from '../components/MovieModal.vue'
 
 const movies = ref<any[]>([])
 const currentPage = ref(1)
+const totalPages = ref(1) // 전체 페이지 수 저장
 const viewMode = ref<'table' | 'infinite'>('table')
 const isLoading = ref(false)
 const observerElement = ref<HTMLElement | null>(null)
+const showTopBtn = ref(false)
 
-// 모달 상태
 const showModal = ref(false)
 const selectedMovie = ref<any>(null)
-const openModal = (movie: any) => {
-  selectedMovie.value = movie
-  showModal.value = true
-}
+const openModal = (movie: any) => { selectedMovie.value = movie; showModal.value = true }
 
-// [핵심 수정] 화면이 꽉 찰 때까지 재귀적으로 데이터 로드
-const checkAndLoadMore = async () => {
-  if (viewMode.value !== 'infinite') return
-
-  await nextTick() // DOM 렌더링 대기
-
-  const scrollHeight = document.documentElement.scrollHeight
-  const clientHeight = window.innerHeight
-
-  // 스크롤바가 아직 안 생겼거나, 하단 여유 공간이 너무 많으면 추가 로드
-  if (!isLoading.value && scrollHeight <= clientHeight + 200) {
-    console.log('화면이 비어있어 추가 로드합니다.')
-    currentPage.value++
-    await fetchMovies(currentPage.value, true)
-  }
-}
+const handleScroll = () => { showTopBtn.value = window.scrollY > 500 }
+const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
 const fetchMovies = async (page: number, isAppend: boolean) => {
   if (isLoading.value) return
   isLoading.value = true
-
   try {
     const res = await tmdb.get('/movie/popular', { params: { page: page } })
+    // TMDB는 보통 500페이지까지 제공하므로 제한
+    totalPages.value = res.data.total_pages > 500 ? 500 : res.data.total_pages
 
     if (isAppend) {
-      // 중복 제거 후 추가
-      const newMovies = res.data.results.filter((newM: any) =>
-          !movies.value.some((oldM: any) => oldM.id === newM.id)
-      )
+      const newMovies = res.data.results.filter((newM: any) => !movies.value.some((oldM: any) => oldM.id === newM.id))
       movies.value = [...movies.value, ...newMovies]
     } else {
       movies.value = res.data.results
     }
-  } catch (error) {
-    console.error(error)
-  } finally {
-    isLoading.value = false
-    // [중요] 로딩이 끝난 후 화면 높이 체크 (재귀 호출 트리거)
-    if (isAppend) {
-      checkAndLoadMore()
-    }
-  }
+  } catch (error) { console.error(error) } finally { isLoading.value = false }
 }
 
 const changeMode = (mode: 'table' | 'infinite') => {
-  viewMode.value = mode
-  currentPage.value = 1
-  window.scrollTo(0, 0)
-
-  // 모드 변경 시 초기화 후 로드
-  fetchMovies(1, false).then(() => {
-    if (mode === 'infinite') checkAndLoadMore()
-  })
+  viewMode.value = mode; currentPage.value = 1; window.scrollTo(0, 0)
+  fetchMovies(1, false)
 }
 
 const changePage = (page: number) => {
-  if (page < 1) return
-  currentPage.value = page
-  window.scrollTo(0, 0)
+  if (page < 1 || page > totalPages.value) return;
+  currentPage.value = page; window.scrollTo(0, 0);
   fetchMovies(page, false)
 }
 
-// Intersection Observer (스크롤 감지)
 let observer: IntersectionObserver | null = null
-
 const initObserver = () => {
   if (observer) observer.disconnect()
-
   observer = new IntersectionObserver((entries) => {
-    // 센서가 화면에 보이고, 로딩 중이 아닐 때
-    if (entries[0].isIntersecting && !isLoading.value) {
-      currentPage.value++
-      fetchMovies(currentPage.value, true)
-    }
+    if (entries[0].isIntersecting && !isLoading.value) { currentPage.value++; fetchMovies(currentPage.value, true) }
   })
-
-  if (observerElement.value) {
-    observer.observe(observerElement.value)
-  }
+  if (observerElement.value) observer.observe(observerElement.value)
 }
 
-// 모드 변경 감지 및 옵저버 재설정
-watch(() => [viewMode.value, observerElement.value], async () => {
-  if (viewMode.value === 'infinite' && observerElement.value) {
-    initObserver()
-    await checkAndLoadMore() // 진입 시 즉시 체크
-  } else {
-    if (observer) observer.disconnect()
-  }
+watch(() => [viewMode.value, observerElement.value], () => {
+  if (viewMode.value === 'infinite' && observerElement.value) { initObserver() } else { if (observer) observer.disconnect() }
 })
 
-onMounted(() => fetchMovies(1, false))
-onUnmounted(() => { if (observer) observer.disconnect() })
+onMounted(() => {
+  fetchMovies(1, false);
+  window.addEventListener('scroll', handleScroll)
+})
+onUnmounted(() => {
+  if (observer) observer.disconnect();
+  window.removeEventListener('scroll', handleScroll)
+})
 </script>
 
 <style scoped>
-.popular-container {
-  min-height: 100vh;
-  /* background-color: #141414; <-- 삭제 */
-  color: white;
-}
-/* ... 나머지 스타일 유지 ... */
+.popular-container { min-height: 100vh; background-color: #141414; color: white; position: relative; }
 .content { padding: 100px 4% 40px; }
 .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .mode-toggle button { background: transparent; color: #888; border: 1px solid #555; padding: 8px 12px; font-size: 1.2rem; cursor: pointer; margin-left: 10px; border-radius: 4px; transition: 0.3s; }
 .mode-toggle button:hover { color: white; border-color: white; }
 .mode-toggle button.active { background: #e50914; color: white; border-color: #e50914; }
 .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
-.pagination { display: flex; justify-content: center; align-items: center; margin-top: 40px; gap: 20px; }
-.pagination button { background: #333; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
+.pagination { display: flex; justify-content: center; align-items: center; margin-top: 40px; gap: 15px; }
+.pagination button { background: #333; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-size: 1rem; }
 .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-num { font-weight: bold; margin: 0 10px; }
 .observer-sentinel { height: 80px; text-align: center; margin-top: 20px; color: #888; display: flex; align-items: center; justify-content: center; }
-.loading-text { font-size: 1.2rem; }
+.top-btn { position: fixed; bottom: 30px; right: 30px; background: #e50914; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; transition: transform 0.3s, background 0.3s; }
+.top-btn:hover { background: #f40612; transform: translateY(-5px); }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 @media (max-width: 768px) { .grid-container { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } }
 </style>
