@@ -5,30 +5,31 @@
     </div>
 
     <div class="auth-box">
+      <div class="student-badge">
+        해당 웹페이지는<br>대학 과제 제출용 데모 사이트입니다.<br>실제 넷플릭스와 무관합니다.
+      </div>
+
       <transition name="fade" mode="out-in">
         <form v-if="isLoginMode" key="login" @submit.prevent="handleLogin">
-          <h2>로그인 (Netflix 과제)</h2>
-
-          <div class="input-group">
-            <input v-model="email" type="text" placeholder="이메일 (임의 입력 가능)" required />
-          </div>
+          <h2>프로젝트 로그인</h2> <div class="input-group">
+          <input v-model="email" type="text" placeholder="이메일 (임의의 이메일)" required />
+        </div>
           <div class="input-group">
             <input v-model="password" type="password" placeholder="비밀번호 (TMDB API Key)" required />
           </div>
 
-          <button type="submit" class="submit-btn">로그인</button>
+          <button type="submit" class="submit-btn">프로젝트 로그인</button>
 
-          <div class="separator"><span>
-
-          </span></div>
+          <div class="separator"><span> </span></div>
 
           <div class="signup-area">
-            YJYflix 계정이 없으신가요? <span @click="toggleMode">회원가입</span>
+            YJYflix 로그인이 필요하신가요? <span @click="toggleMode">회원가입</span>
           </div>
 
           <p class="disclaimer" style="color: #e50914; margin-top: 20px; font-size: 0.8rem;">
             * 본 사이트는 대학 과제 제출용 프로젝트이며, 실제 서비스와 무관합니다. 개인정보를 수집하지 않습니다.
           </p>
+
         </form>
 
         <form v-else key="signup" @submit.prevent="handleSignup">
@@ -42,10 +43,13 @@
           <div class="input-group">
             <input v-model="confirmPassword" type="password" placeholder="비밀번호 확인" required />
           </div>
-          <button type="submit" class="submit-btn">등록하기</button>
+          <button type="submit" class="submit-btn">등록</button>
           <div class="signup-area">
-            이미 계정이 있으신가요? <span @click="toggleMode">로그인</span>
+            이미 로그인 정보가 있으신가요? <span @click="toggleMode">로그인</span>
           </div>
+          <p class="disclaimer" style="color: #e50914; margin-top: 20px; font-size: 0.8rem;">
+            * 본 사이트는 대학 과제 제출용 프로젝트이며, 실제 서비스와 무관합니다. 개인정보를 수집하지 않습니다.
+          </p>
         </form>
       </transition>
       <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
@@ -57,7 +61,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { useMovieStore } from '../stores/movieStore' // Pinia Store
+import { useMovieStore } from '../stores/movieStore'
 
 const router = useRouter()
 const store = useMovieStore()
@@ -68,7 +72,7 @@ const password = ref('')
 const confirmPassword = ref('')
 const errorMsg = ref('')
 
-onMounted(() => { document.title = 'YJY Movie Project' }) // 탭 제목 변경
+onMounted(() => { document.title = 'YJY Student Project' }) // 제목 확실하게 변경
 
 const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value
@@ -80,10 +84,7 @@ const toggleMode = () => {
 const handleLogin = async () => {
   try {
     await axios.get(`https://api.themoviedb.org/3/configuration?api_key=${password.value}`)
-
-    // [Pinia] 로그인 상태 저장
     store.login(email.value, password.value)
-
     router.push('/')
   } catch (e) {
     errorMsg.value = '접속 실패: 유효한 TMDB API Key를 입력해주세요.'
@@ -95,7 +96,7 @@ const handleSignup = () => {
     errorMsg.value = 'API Key가 일치하지 않습니다.'
     return
   }
-  alert('등록되었습니다. 접속해주세요.')
+  alert('등록되었습니다. 입장합니다.')
   toggleMode()
 }
 </script>
@@ -104,7 +105,6 @@ const handleSignup = () => {
 .auth-wrapper {
   position: relative; min-height: 100vh; width: 100%;
   background-color: #000;
-  /* 배경 이미지 */
   background-image: url('../assets/background.png');
   background-size: cover; background-position: center; background-repeat: no-repeat;
   overflow: hidden; display: flex; align-items: center; justify-content: center;
@@ -122,11 +122,24 @@ const handleSignup = () => {
 .auth-box {
   position: relative; z-index: 10;
   background-color: rgba(0, 0, 0, 0.75);
-  padding: 60px 68px 40px;
+  padding: 40px 68px 40px; /* 패딩 조정 */
   border-radius: 4px;
   width: 100%; max-width: 450px; min-height: 500px;
   color: white;
   box-shadow: 0 0 50px 10px rgba(0, 0, 0, 0.9);
+}
+
+/* [추가] 학생 과제 배너 스타일 */
+.student-badge {
+  background-color: rgba(229, 9, 20, 0.2);
+  border: 1px solid #e50914;
+  color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 h2 { font-size: 2rem; font-weight: 700; margin-bottom: 28px; }

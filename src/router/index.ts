@@ -1,4 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
+// [수정] createWebHashHistory 임포트 (History -> HashHistory)
+import { createRouter, createWebHashHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import SignIn from '../views/SignIn.vue'
 import Wishlist from '../views/Wishlist.vue'
@@ -14,8 +15,9 @@ const routes = [
 ]
 
 const router = createRouter({
-    // [핵심 수정] Vite 설정의 base 경로를 라우터에 전달 (로컬/배포 모두 정상 작동하게 함)
-    history: createWebHistory(import.meta.env.BASE_URL),
+    // [핵심 수정] createWebHistory -> createWebHashHistory 로 변경
+    // 이렇게 하면 주소가 /#/signin 형태로 변하며, 새로고침 해도 404가 안 뜹니다.
+    history: createWebHashHistory(import.meta.env.BASE_URL),
     routes
 })
 
