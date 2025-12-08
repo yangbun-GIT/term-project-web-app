@@ -3,5 +3,11 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  "compilerOptions": {
+    /* 기본 모듈 설정 */
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "ignoreDeprecations": "5.0"
+  }
 }
