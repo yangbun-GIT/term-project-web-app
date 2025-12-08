@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import tmdb from '../api/tmdb'
 
 export const useMovieStore = defineStore('movie', () => {
-    // --- State (총 14개 Key) ---
+    // --- State (총 20개 Key) ---
     const wishlist = ref<any[]>([])
     const email = ref('')
     const apiKey = ref('')
@@ -13,43 +13,69 @@ export const useMovieStore = defineStore('movie', () => {
     const watchHistory = ref<any[]>([])
     const genreCache = ref<any[]>([])
     const viewMode = ref<'table' | 'infinite'>('table')
-
-    // [NEW] 추가된 5가지 상태
     const wishlistSort = ref<'date' | 'alpha'>('date')
     const includeAdult = ref(false)
     const autoplay = ref(true)
     const lowDataMode = ref(false)
     const lastPath = ref('/')
 
+    // [NEW] 추가된 6개 상태
+    const volumeLevel = ref(0.5)        // 볼륨 (0.0 ~ 1.0)
+    const isMuted = ref(false)          // 음소거 여부
+    const gridSize = ref<'normal' | 'large'>('normal') // 그리드 크기
+    const fontSize = ref<'normal' | 'large'>('normal') // 글자 크기
+    const reducedMotion = ref(false)    // 애니메이션 줄이기
+    const hideHorror = ref(false)       // 공포 영화 숨기기 (Content Filter)
+
     // --- Actions ---
     const initializeStore = () => {
-        const load = (key: string) => {
+        const load = (key: string, def: any = null) => {
             const data = localStorage.getItem(key)
-            try { return data ? JSON.parse(data) : null } catch { return null }
+            if (data === null) return def
+            try { return JSON.parse(data) } catch { return data } // 문자열은 그대로 반환
         }
 
-        // 기존 데이터 로드
-        if (load('my-wishlist')) wishlist.value = load('my-wishlist')
+        // 1-14. 기존 로직
+        wishlist.value = load('my-wishlist', [])
         email.value = localStorage.getItem('UserId') || ''
         apiKey.value = localStorage.getItem('TMDb-Key') || ''
-        if (load('search-history')) searchHistory.value = load('search-history')
+        searchHistory.value = load('search-history', [])
         language.value = localStorage.getItem('app-lang') || 'ko-KR'
-        theme.value = localStorage.getItem('app-theme') || 'dark'
-        applyTheme(theme.value)
-        if (load('watch-history')) watchHistory.value = load('watch-history')
-        if (load('cached-genres')) genreCache.value = load('cached-genres')
-        viewMode.value = localStorage.getItem('view-mode') as any || 'table'
 
-        // [NEW] 신규 데이터 로드
+        // 테마 & 폰트 적용
+        theme.value = localStorage.getItem('app-theme') || 'dark'
+        fontSize.value = localStorage.getItem('font-size') as any || 'normal'
+        applyVisualSettings()
+
+        watchHistory.value = load('watch-history', [])
+        genreCache.value = load('cached-genres', [])
+        viewMode.value = localStorage.getItem('view-mode') as any || 'table'
         wishlistSort.value = localStorage.getItem('wishlist-sort') as any || 'date'
-        includeAdult.value = localStorage.getItem('include-adult') === 'true'
-        const savedAutoplay = localStorage.getItem('autoplay')
-        autoplay.value = savedAutoplay === null ? true : savedAutoplay === 'true'
-        lowDataMode.value = localStorage.getItem('low-data-mode') === 'true'
+        includeAdult.value = load('include-adult', false)
+        autoplay.value = load('autoplay', true)
+        lowDataMode.value = load('low-data-mode', false)
         lastPath.value = localStorage.getItem('last-path') || '/'
+
+        // [NEW] 15-20. 신규 데이터 로드
+        volumeLevel.value = load('volume-level', 0.5)
+        isMuted.value = load('is-muted', false)
+        gridSize.value = localStorage.getItem('grid-size') as any || 'normal'
+        reducedMotion.value = load('reduced-motion', false)
+        hideHorror.value = load('content-filter', false)
     }
 
-    // --- 기존 함수들 (로그인, 찜, 검색 등) ---
+    // --- Visual Settings 적용 함수 (테마 + 폰트) ---
+    const applyVisualSettings = () => {
+        // 테마 적용
+        if (theme.value === 'light') document.body.classList.add('light-mode')
+        else document.body.classList.remove('light-mode')
+
+        // 폰트 크기 적용
+        if (fontSize.value === 'large') document.body.classList.add('font-large')
+        else document.body.classList.remove('font-large')
+    }
+
+    // ... (기존 기본 함수들은 생략 없이 유지) ...
     const login = (userEmail: string, key: string) => {
         email.value = userEmail; apiKey.value = key;
         localStorage.setItem('UserId', userEmail); localStorage.setItem('TMDb-Key', key);
@@ -78,13 +104,6 @@ export const useMovieStore = defineStore('movie', () => {
     const setLanguage = (lang: string) => {
         language.value = lang; localStorage.setItem('app-lang', lang); window.location.reload()
     }
-    const toggleTheme = () => {
-        theme.value = theme.value === 'dark' ? 'light' : 'dark'
-        localStorage.setItem('app-theme', theme.value); applyTheme(theme.value)
-    }
-    const applyTheme = (mode: string) => {
-        if (mode === 'light') document.body.classList.add('light-mode'); else document.body.classList.remove('light-mode')
-    }
     const addToHistory = (movie: any) => {
         const exists = watchHistory.value.findIndex(m => m.id === movie.id)
         if (exists !== -1) watchHistory.value.splice(exists, 1)
@@ -104,35 +123,63 @@ export const useMovieStore = defineStore('movie', () => {
     const setViewMode = (mode: 'table' | 'infinite') => {
         viewMode.value = mode; localStorage.setItem('view-mode', mode)
     }
-
-    // --- [NEW] 신규 기능 함수들 ---
     const setWishlistSort = (sort: 'date' | 'alpha') => {
         wishlistSort.value = sort; localStorage.setItem('wishlist-sort', sort)
     }
     const toggleAdult = () => {
-        includeAdult.value = !includeAdult.value
-        localStorage.setItem('include-adult', String(includeAdult.value))
+        includeAdult.value = !includeAdult.value; localStorage.setItem('include-adult', String(includeAdult.value))
     }
     const toggleAutoplay = () => {
-        autoplay.value = !autoplay.value
-        localStorage.setItem('autoplay', String(autoplay.value))
+        autoplay.value = !autoplay.value; localStorage.setItem('autoplay', String(autoplay.value))
     }
     const toggleLowData = () => {
-        lowDataMode.value = !lowDataMode.value
-        localStorage.setItem('low-data-mode', String(lowDataMode.value))
+        lowDataMode.value = !lowDataMode.value; localStorage.setItem('low-data-mode', String(lowDataMode.value))
     }
     const saveLastPath = (path: string) => {
-        if (path === '/signin') return // 로그인 페이지는 저장 안 함
-        lastPath.value = path
-        localStorage.setItem('last-path', path)
+        if (path === '/signin') return
+        lastPath.value = path; localStorage.setItem('last-path', path)
+    }
+
+    // --- [NEW] 신규 기능 제어 함수들 ---
+    const toggleTheme = () => {
+        theme.value = theme.value === 'dark' ? 'light' : 'dark'
+        localStorage.setItem('app-theme', theme.value)
+        applyVisualSettings()
+    }
+    const toggleGridSize = () => {
+        gridSize.value = gridSize.value === 'normal' ? 'large' : 'normal'
+        localStorage.setItem('grid-size', gridSize.value)
+    }
+    const toggleFontSize = () => {
+        fontSize.value = fontSize.value === 'normal' ? 'large' : 'normal'
+        localStorage.setItem('font-size', fontSize.value)
+        applyVisualSettings()
+    }
+    const toggleMotion = () => {
+        reducedMotion.value = !reducedMotion.value
+        localStorage.setItem('reduced-motion', String(reducedMotion.value))
+    }
+    const toggleHorror = () => {
+        hideHorror.value = !hideHorror.value
+        localStorage.setItem('content-filter', String(hideHorror.value))
+    }
+    const setVolume = (vol: number) => {
+        volumeLevel.value = vol; localStorage.setItem('volume-level', String(vol))
+    }
+    const toggleMute = () => {
+        isMuted.value = !isMuted.value; localStorage.setItem('is-muted', String(isMuted.value))
     }
 
     return {
+        // State
         wishlist, email, apiKey, searchHistory, language, theme, watchHistory, genreCache, viewMode,
         wishlistSort, includeAdult, autoplay, lowDataMode, lastPath,
+        volumeLevel, isMuted, gridSize, fontSize, reducedMotion, hideHorror,
+        // Actions
         initializeStore, login, logout, toggleLike, isLiked,
         addSearchHistory, removeSearchHistory, setLanguage,
         toggleTheme, addToHistory, fetchGenres, setViewMode,
-        setWishlistSort, toggleAdult, toggleAutoplay, toggleLowData, saveLastPath
+        setWishlistSort, toggleAdult, toggleAutoplay, toggleLowData, saveLastPath,
+        toggleGridSize, toggleFontSize, toggleMotion, toggleHorror, setVolume, toggleMute
     }
 })

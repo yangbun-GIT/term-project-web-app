@@ -11,13 +11,12 @@
         <router-link to="/search">찾아보기</router-link>
       </div>
     </div>
+
     <div class="right-section">
       <div ref="searchContainer" class="search-box" :class="{ active: showSearch }">
         <i class="fas fa-search icon" @click="toggleSearch"></i>
         <input v-if="showSearch" ref="searchInput" v-model="searchQuery" @keyup.enter="goToSearch" placeholder="제목, 사람, 장르" />
       </div>
-
-      <i class="fas fa-cog icon setting-btn" @click="showSettings = true" title="설정"></i>
 
       <i class="fas icon theme-btn" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'" @click="store.toggleTheme" title="테마 변경"></i>
 
@@ -25,6 +24,8 @@
         <option value="ko-KR">KR</option>
         <option value="en-US">EN</option>
       </select>
+
+      <i class="fas fa-cog icon setting-btn" @click="showSettings = true" title="설정"></i>
 
       <div class="profile-menu">
         <div class="profile-icon">
@@ -51,7 +52,6 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import { storeToRefs } from 'pinia'
-// [NEW] 설정 모달 임포트
 import SettingsModal from './SettingsModal.vue'
 
 const store = useMovieStore()
@@ -60,14 +60,13 @@ const { email, theme, language } = storeToRefs(store)
 const isScrolled = ref(false)
 const isHovered = ref(false)
 const showSearch = ref(false)
-const showSettings = ref(false) // [NEW] 설정 모달 상태
+const showSettings = ref(false)
 const searchQuery = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
 const searchContainer = ref<HTMLElement | null>(null)
 const router = useRouter()
 const route = useRoute()
 
-// ... (기존 handleScroll, handleLogoClick, handleLogout, toggleSearch 등 로직 유지) ...
 const handleScroll = () => isScrolled.value = window.scrollY > 50
 const handleClickOutside = (event: MouseEvent) => { if (showSearch.value && searchContainer.value && !searchContainer.value.contains(event.target as Node)) { showSearch.value = false } }
 const handleLogout = () => { store.logout(); router.push('/signin') }
@@ -81,7 +80,6 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.r
 </script>
 
 <style scoped>
-/* 기존 스타일 유지 */
 .navbar { display: flex; justify-content: space-between; align-items: center; padding: 0 4%; position: fixed; top: 0; width: 100%; z-index: 1000; height: 70px; box-sizing: border-box; transition: background-color 0.4s ease; background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); }
 .navbar.black-nav { background-color: #141414; }
 .navbar.hover-nav { background-color: rgba(0,0,0,0.9); }
@@ -93,6 +91,8 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.r
 .links a:hover, .links a.router-link-active { color: #fff; font-weight: bold; }
 .right-section { display: flex; align-items: center; gap: 20px; color: white; }
 .icon { font-size: 1.2rem; cursor: pointer; }
+
+/* 아이콘 간격 조정 */
 .theme-btn { margin-right: 5px; font-size: 1.2rem; transition: transform 0.3s; }
 .theme-btn:hover { color: #e50914; transform: rotate(20deg); }
 .setting-btn { margin-right: 5px; transition: transform 0.3s; }
