@@ -51,7 +51,7 @@ onMounted(() => checkScroll())
 <style scoped>
 /* [수정] 간격 축소: 80px -> 40px */
 .movie-row { margin-bottom: 40px; padding: 0 4%; position: relative; }
-.row-title { color: #e5e5e5; font-size: 1.4rem; font-weight: bold; margin-bottom: 15px; }
+.row-title { color: #141414; font-size: 1.4rem; font-weight: bold; margin-bottom: 15px; }
 .slider-wrapper { position: relative; }
 
 .slider {
