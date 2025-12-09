@@ -1,9 +1,10 @@
 <template>
   <nav class="navbar" :class="{ 'black-nav': isScrolled, 'hover-nav': isHovered }" @mouseenter="isHovered = true" @mouseleave="isHovered = false">
-    <div class="left-section">
+
+    <div class="nav-left">
       <i class="fas fa-bars mobile-menu-btn" @click="toggleMobileMenu"></i>
 
-      <a class="logo-link" @click.prevent="handleLogoClick">
+      <a class="logo-link pc-logo" @click.prevent="handleLogoClick">
         <img src="../assets/yjy.png" alt="YJY PROJECT" class="logo-img" />
       </a>
 
@@ -15,32 +16,56 @@
       </div>
     </div>
 
-    <div class="right-section">
+    <a class="logo-link mobile-logo" @click.prevent="handleLogoClick">
+      <img src="../assets/yjy.png" alt="YJY PROJECT" class="logo-img" />
+    </a>
+
+    <div class="nav-right">
       <div ref="searchContainer" class="search-box" :class="{ active: showSearch, 'light-theme-box': theme === 'light' }">
         <i class="fas fa-search icon" @click="toggleSearch"></i>
-        <input v-if="showSearch" ref="searchInput" v-model="searchQuery" @keyup.enter="goToSearch" placeholder="제목, 사람, 장르" />
+        <input v-if="showSearch" ref="searchInput" v-model="searchQuery" @keyup.enter="goToSearch" placeholder="검색" />
       </div>
 
-      <i class="fas icon theme-btn" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'" @click="store.toggleTheme" title="테마 변경"></i>
-
-      <select v-model="language" @change="changeLang" class="nav-lang-selector" :class="{ 'light-theme-select': theme === 'light' }" title="언어 변경">
-        <option value="ko-KR">KR</option>
-        <option value="en-US">EN</option>
-      </select>
-
-      <i class="fas fa-cog icon setting-btn" @click="showSettings = true" title="설정"></i>
+      <div class="pc-actions">
+        <i class="fas icon theme-btn" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'" @click="store.toggleTheme" title="테마 변경"></i>
+        <select v-model="language" @change="changeLang" class="nav-lang-selector" :class="{ 'light-theme-select': theme === 'light' }">
+          <option value="ko-KR">KR</option>
+          <option value="en-US">EN</option>
+        </select>
+        <i class="fas fa-cog icon setting-btn" @click="showSettings = true" title="설정"></i>
+      </div>
 
       <div class="profile-menu">
         <div class="profile-icon">
           <img src="https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png" alt="User" />
         </div>
         <i class="fas fa-caret-down dropdown-arrow"></i>
+
         <div class="dropdown">
-          <div class="dropdown-content">
-            <span>{{ email || 'Guest' }}님</span>
+          <div class="dropdown-content" :class="{ 'light-mobile': theme === 'light' }">
+            <span class="user-info">{{ email || 'Guest' }}님</span>
             <hr>
-            <router-link to="/wishlist" class="drop-link">찜한 리스트</router-link>
-            <button @click="handleLogout">로그아웃</button>
+
+            <div class="mobile-actions-menu">
+              <div class="menu-item" @click="store.toggleTheme">
+                <i class="fas" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
+                <span>{{ theme === 'dark' ? '라이트 모드' : '다크 모드' }}</span>
+              </div>
+              <div class="menu-item">
+                <i class="fas fa-globe"></i>
+                <select v-model="language" @change="changeLang" class="mobile-lang-select">
+                  <option value="ko-KR">한국어</option>
+                  <option value="en-US">English</option>
+                </select>
+              </div>
+              <div class="menu-item" @click="showSettings = true">
+                <i class="fas fa-cog"></i> <span>설정</span>
+              </div>
+              <hr>
+            </div>
+
+            <router-link to="/wishlist" class="drop-link"><i class="fas fa-heart"></i> 찜한 리스트</router-link>
+            <button @click="handleLogout" class="logout-btn">로그아웃</button>
           </div>
         </div>
       </div>
@@ -52,7 +77,7 @@
       <div v-if="showMobileMenu" class="mobile-menu-overlay" @click.self="showMobileMenu = false">
         <div class="mobile-menu-content" :class="{ 'light-mobile': theme === 'light' }">
           <div class="mobile-header">
-            <span class="mobile-user">{{ email || 'Guest' }}님</span>
+            <span class="mobile-user">{{ email || 'Guest' }}</span>
             <i class="fas fa-times close-menu" @click="showMobileMenu = false"></i>
           </div>
           <div class="mobile-links">
@@ -81,7 +106,7 @@ const isScrolled = ref(false)
 const isHovered = ref(false)
 const showSearch = ref(false)
 const showSettings = ref(false)
-const showMobileMenu = ref(false) // [NEW] 모바일 메뉴 상태
+const showMobileMenu = ref(false)
 const searchQuery = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
 const searchContainer = ref<HTMLElement | null>(null)
@@ -95,50 +120,44 @@ const handleLogoClick = () => { if (route.path === '/') window.scrollTo({ top: 0
 const changeLang = () => { store.setLanguage(language.value) }
 const toggleSearch = () => { showSearch.value = !showSearch.value; if (showSearch.value) nextTick(() => searchInput.value?.focus()) }
 const goToSearch = () => { if (searchQuery.value.trim()) router.push({ path: '/search', query: { q: searchQuery.value } }) }
-const toggleMobileMenu = () => { showMobileMenu.value = !showMobileMenu.value } // [NEW] 토글 함수
+const toggleMobileMenu = () => { showMobileMenu.value = !showMobileMenu.value }
 
 onMounted(() => { window.addEventListener('scroll', handleScroll); window.addEventListener('click', handleClickOutside) })
 onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.removeEventListener('click', handleClickOutside) })
 </script>
 
 <style scoped>
-/* 기존 스타일 */
+/* 레이아웃 구조 */
 .navbar { display: flex; justify-content: space-between; align-items: center; padding: 0 4%; position: fixed; top: 0; width: 100%; z-index: 1000; height: 70px; box-sizing: border-box; transition: background-color 0.4s ease; background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); }
 .navbar.black-nav { background-color: #141414; }
 .navbar.hover-nav { background-color: rgba(0,0,0,0.9); }
-.left-section { display: flex; align-items: center; gap: 40px; }
-.logo-link { display: flex; align-items: center; cursor: pointer; margin-right: 20px; }
-.logo-img { height: 60px; width: auto; object-fit: contain; display: block; }
+
+.nav-left, .nav-right { display: flex; align-items: center; }
+.nav-left { gap: 20px; }
+.nav-right { gap: 15px; }
+
+/* 로고 */
+.logo-img { height: 35px; width: auto; display: block; } /* 로고 크기 최적화 */
+.mobile-logo { display: none; } /* 기본적으로 숨김 */
+
+/* 메뉴 링크 */
 .links { display: flex; gap: 20px; }
-.links a { color: #e5e5e5; text-decoration: none; font-size: 0.9rem; transition: 0.3s; position: relative; padding-bottom: 5px; }
-.links a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: 0; left: 0; background-color: #e50914; transition: width 0.3s ease-in-out; }
-.links a:hover::after, .links a.router-link-active::after { width: 100%; }
+.links a { color: #e5e5e5; text-decoration: none; font-size: 0.9rem; transition: 0.3s; }
 .links a:hover, .links a.router-link-active { color: #fff; font-weight: bold; }
-.right-section { display: flex; align-items: center; gap: 20px; color: white; }
-.icon { font-size: 1.2rem; cursor: pointer; }
-.theme-btn { margin-right: 5px; font-size: 1.2rem; transition: transform 0.3s; }
-.theme-btn:hover { color: #e50914; transform: rotate(20deg); }
-.setting-btn { margin-right: 5px; transition: transform 0.3s; }
-.setting-btn:hover { color: #e50914; transform: rotate(90deg); }
 
-.nav-lang-selector { background: transparent; color: #fff; border: 1px solid #fff; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; margin-right: 10px; outline: none; }
+/* 아이콘 버튼들 */
+.icon { font-size: 1.2rem; cursor: pointer; color: white; transition: 0.3s; }
+.pc-actions { display: flex; align-items: center; gap: 15px; }
+
+/* 검색창 */
+.search-box { display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid transparent; transition: 0.3s; }
+.search-box.active { border: 1px solid #fff; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; }
+.search-box input { background: transparent; border: none; color: white; width: 0; outline: none; transition: width 0.3s; }
+.search-box.active input { width: 150px; }
+
+/* 언어 선택기 */
+.nav-lang-selector { background: transparent; color: #fff; border: 1px solid #fff; border-radius: 4px; padding: 2px 5px; font-size: 0.8rem; cursor: pointer; }
 .nav-lang-selector option { background: #333; color: #fff; }
-
-.search-box { display: flex; align-items: center; gap: 10px; padding: 5px; border: 1px solid transparent; }
-.search-box.active { border: 1px solid #fff; background: rgba(0,0,0,0.8); padding: 5px 10px; }
-.search-box input { background: transparent; border: none; color: white; width: 200px; outline: none; }
-
-.profile-menu { position: relative; display: flex; align-items: center; gap: 5px; cursor: pointer; padding: 10px 0; }
-.profile-icon img { width: 32px; height: 32px; border-radius: 4px; }
-.dropdown-arrow { font-size: 0.8rem; transition: transform 0.2s; }
-.profile-menu:hover .dropdown-arrow { transform: rotate(180deg); }
-.dropdown { position: absolute; top: 100%; right: 0; padding-top: 10px; display: none; }
-.profile-menu:hover .dropdown { display: block; }
-.dropdown-content { background-color: rgba(0,0,0,0.95); border: 1px solid #333; width: 150px; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-.dropdown span { font-size: 0.8rem; color: #ccc; }
-.dropdown hr { border: 0.5px solid #333; width: 100%; margin: 0; }
-.drop-link, .dropdown button { color: white; text-decoration: none; font-size: 0.9rem; background: none; border: none; text-align: left; cursor: pointer; padding: 0; }
-.drop-link:hover, .dropdown button:hover { text-decoration: underline; }
 
 /* 라이트 모드 가시성 패치 */
 .search-box.active.light-theme-box { background: #ffffff !important; border: 1px solid #ccc !important; }
@@ -146,38 +165,62 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.r
 .search-box.light-theme-box .icon { color: #333333 !important; }
 .nav-lang-selector.light-theme-select { color: #333333 !important; border-color: #ccc !important; background-color: #ffffff !important; }
 .nav-lang-selector.light-theme-select option { background-color: #ffffff !important; color: #333333 !important; }
-:global(body.light-mode) .dropdown-content { background-color: #ffffff; border-color: #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-:global(body.light-mode) .dropdown span { color: #666; }
-:global(body.light-mode) .dropdown hr { border-color: #eee; }
-:global(body.light-mode) .drop-link, :global(body.light-mode) .dropdown button { color: #333; }
 
-/* [NEW] 모바일 메뉴 스타일 (반응형 핵심) */
-.mobile-menu-btn { display: none; font-size: 1.5rem; color: white; cursor: pointer; margin-right: 15px; }
-:global(body.light-mode) .mobile-menu-btn { color: #333; }
+/* 프로필 메뉴 */
+.profile-menu { position: relative; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.profile-icon img { width: 30px; height: 30px; border-radius: 4px; }
+.dropdown-arrow { font-size: 0.7rem; color: white; }
+.dropdown { position: absolute; top: 100%; right: 0; padding-top: 10px; display: none; }
+.profile-menu:hover .dropdown { display: block; }
+
+.dropdown-content { background-color: rgba(0,0,0,0.95); border: 1px solid #333; width: 180px; padding: 15px; display: flex; flex-direction: column; gap: 10px; border-radius: 4px; }
+.dropdown-content.light-mobile { background: #fff; color: #333; border-color: #ddd; }
+.user-info { font-size: 0.9rem; font-weight: bold; }
+.drop-link, .logout-btn { color: #ccc; text-decoration: none; font-size: 0.9rem; background: none; border: none; text-align: left; cursor: pointer; }
+.drop-link:hover, .logout-btn:hover { color: white; }
+.dropdown-content.light-mobile .drop-link, .dropdown-content.light-mobile .logout-btn { color: #333; }
+.dropdown-content.light-mobile .drop-link:hover { color: #e50914; }
+
+/* 모바일 통합 메뉴 (Dropdown 내부) */
+.mobile-actions-menu { display: none; flex-direction: column; gap: 10px; }
+.menu-item { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; cursor: pointer; color: #ccc; }
+.menu-item:hover { color: white; }
+.dropdown-content.light-mobile .menu-item { color: #333; }
+.dropdown-content.light-mobile .menu-item:hover { color: #e50914; }
+.mobile-lang-select { background: transparent; color: inherit; border: 1px solid #555; border-radius: 4px; padding: 2px; font-size: 0.8rem; }
+
+/* 햄버거 메뉴 */
+.mobile-menu-btn { display: none; font-size: 1.4rem; color: white; cursor: pointer; margin-right: 10px; }
+:global(body.light-mode) .mobile-menu-btn { color: #141414 !important; } /* 라이트모드 햄버거 검정색 */
 
 .mobile-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; }
-.mobile-menu-content { width: 70%; max-width: 300px; height: 100%; background: #141414; padding: 20px; display: flex; flex-direction: column; gap: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
-/* 모바일 메뉴 라이트 모드 지원 */
+.mobile-menu-content { width: 70%; max-width: 280px; height: 100%; background: #141414; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 .mobile-menu-content.light-mobile { background: #fff; color: #333; }
+.mobile-links a { display: block; font-size: 1.1rem; color: #aaa; margin-bottom: 15px; text-decoration: none; }
+.mobile-links a.router-link-active { color: white; font-weight: bold; border-left: 3px solid #e50914; padding-left: 10px; }
+.mobile-menu-content.light-mobile .mobile-links a.router-link-active { color: #333; }
 
-.mobile-header { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; padding-bottom: 20px; border-bottom: 1px solid #333; }
-.mobile-menu-content.light-mobile .mobile-header { border-bottom-color: #eee; }
-
-.mobile-links { display: flex; flex-direction: column; gap: 20px; }
-.mobile-links a { color: #ccc; font-size: 1rem; text-decoration: none; font-weight: bold; }
-.mobile-menu-content.light-mobile .mobile-links a { color: #333; }
-
-.mobile-links a.router-link-active { color: #e50914; }
-.close-menu { cursor: pointer; font-size: 1.5rem; }
-
-/* [중요] 반응형 미디어 쿼리 */
+/* [반응형 핵심] */
 @media (max-width: 768px) {
-  .links { display: none; } /* 기존 PC 메뉴 숨김 */
-  .mobile-menu-btn { display: block; } /* 햄버거 버튼 표시 */
-  .left-section { gap: 10px; }
-  .logo-img { height: 40px; }
+  /* PC 요소 숨기기 */
+  .links, .pc-actions, .pc-logo { display: none !important; }
+
+  /* 모바일 요소 보이기 */
+  .mobile-menu-btn { display: block; }
+  .mobile-logo {
+    display: block;
+    position: absolute; left: 50%; transform: translateX(-50%); /* 로고 중앙 정렬 */
+  }
+
+  /* 모바일에서 프로필 메뉴 내 통합 기능 활성화 */
+  .mobile-actions-menu { display: flex; }
+
+  /* 검색창 길이 조정 (공간 확보) */
+  .search-box.active input { width: 100px; }
+
+  .navbar { padding: 0 15px; } /* 패딩 축소 */
 }
 
-.slide-fade-enter-active, .slide-fade-leave-active { transition: transform 0.3s ease, opacity 0.3s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { transform: translateX(-100%); opacity: 0; }
+.slide-fade-enter-active, .slide-fade-leave-active { transition: transform 0.3s ease; }
+.slide-fade-enter-from, .slide-fade-leave-to { transform: translateX(-100%); }
 </style>

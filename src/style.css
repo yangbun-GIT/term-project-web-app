@@ -51,7 +51,6 @@ body.reduced-motion *::after {
 }
 
 /* 3. 큰 그리드 모드 (grid-large) */
-/* .grid-container 또는 .grid 클래스를 가진 요소의 컬럼 너비를 넓힘 */
 body.grid-large .grid-container,
 body.grid-large .grid {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
@@ -61,9 +60,8 @@ body.grid-large .grid {
 body.no-hover .movie-card {
     transform: none !important;
     box-shadow: none !important;
-    border: 1px solid #444; /* 호버가 없으므로 테두리로 구분 */
+    border: 1px solid #444;
 }
-/* 호버를 껐을 때는 제목이 항상 보이도록 설정 */
 body.no-hover .movie-card .overlay {
     opacity: 1 !important;
     background: linear-gradient(to top, rgba(0,0,0,0.9), transparent) !important;
@@ -73,7 +71,6 @@ body.no-hover .movie-card .overlay {
    [전역 초기화 및 공통 스타일]
 ========================================= */
 
-/* 거대한 V자 화살표 방지 (전역 초기화) */
 select {
     appearance: none;
     -webkit-appearance: none;
@@ -132,14 +129,14 @@ body.light-mode .settings-modal {
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
-/* 3. 텍스트 가시성 (헤더, 본문) */
+/* 3. 텍스트 가시성 */
 body.light-mode h1, body.light-mode h2, body.light-mode h3,
 body.light-mode h4, body.light-mode h5, body.light-mode h6,
 body.light-mode p, body.light-mode span, body.light-mode div {
     color: #111111;
 }
 
-/* 예외: 배경 이미지가 있는 곳(모달 헤더, 메인 배너)은 흰색 유지 */
+/* 예외: 배경 이미지가 있는 곳은 흰색 유지 */
 body.light-mode .hero-content h1,
 body.light-mode .hero-content p,
 body.light-mode .modal-title h1,
@@ -148,7 +145,7 @@ body.light-mode .modal-meta span {
     text-shadow: 0 2px 5px rgba(0,0,0,0.9);
 }
 
-/* 4. 입력 폼 (Select, Input) */
+/* 4. 입력 폼 */
 select, input, .search-bar {
     background: #333; color: white; border: 1px solid #555;
 }
@@ -177,7 +174,7 @@ body.light-mode .dropdown hr {
     border-color: #eee !important;
 }
 
-/* 6. 페이지네이션 및 버튼 */
+/* 6. 페이지네이션 */
 body.light-mode .pagination button {
     background: #e0e0e0;
     color: #333;
@@ -189,7 +186,7 @@ body.light-mode .page-num {
     color: #111 !important;
 }
 
-/* 7. 기타 요소 (태그, 구분선, 스크롤바) */
+/* 7. 기타 요소 */
 body.light-mode .tag {
     background: #e0e0e0;
     color: #333;
@@ -209,4 +206,29 @@ body.light-mode ::-webkit-scrollbar-track {
 }
 body.light-mode ::-webkit-scrollbar-thumb {
     background: #ccc;
+}
+
+/* =========================================
+   [NEW] 모바일 최적화 및 버그 수정
+========================================= */
+
+/* 1. 모바일 포스터 크기 조정 (거대한 포스터 방지) */
+@media (max-width: 768px) {
+    /* 그리드 최소 너비를 200px -> 100px로 줄여서 한 줄에 2~3개 나오게 함 */
+    .grid-container, .grid, .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+        gap: 10px !important;
+        padding: 0 !important; /* 패딩 제거로 공간 확보 */
+    }
+
+    /* 작은 카드에 맞게 폰트/아이콘 축소 */
+    .movie-card .title { font-size: 0.8rem !important; }
+    .heart-btn { font-size: 1rem !important; top: 5px !important; right: 5px !important; }
+    .no-poster { font-size: 0.8rem !important; }
+}
+
+/* 2. 라이트 모드 햄버거 버튼 가시성 확보 */
+body.light-mode .mobile-menu-btn {
+    color: #141414 !important;
 }
