@@ -1,6 +1,8 @@
 <template>
   <div class="movie-row">
-    <h3 class="row-title">{{ title }}</h3>
+    <h3 class="row-title" :class="{ 'light-text': store.theme === 'light' }">
+      {{ title }}
+    </h3>
 
     <div class="slider-wrapper" @mouseenter="showControls = true" @mouseleave="showControls = false">
       <button v-if="showLeft" class="handle left-handle" @click="scroll('left')">
@@ -25,12 +27,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import MovieCard from './MovieCard.vue'
+import { useMovieStore } from '../stores/movieStore' // [필수] 스토어 가져오기
 
 defineProps<{ title: string; movies: any[] }>()
 defineEmits(['movie-click'])
 
+const store = useMovieStore() // [필수] 스토어 사용
 const slider = ref<HTMLElement | null>(null)
 const showControls = ref(false)
 const showLeft = ref(false)
@@ -45,13 +49,26 @@ const scroll = (direction: 'left' | 'right') => {
 
 const checkScroll = () => { if (slider.value) showLeft.value = slider.value.scrollLeft > 0 }
 
-onMounted(() => checkScroll())
+onMounted(() => { nextTick(() => checkScroll()) })
 </script>
 
 <style scoped>
-/* [수정] 간격 축소: 80px -> 40px */
 .movie-row { margin-bottom: 40px; padding: 0 4%; position: relative; }
-.row-title { color: #141414; font-size: 1.4rem; font-weight: bold; margin-bottom: 15px; }
+
+/* 기본(다크모드) 제목: 흰색 */
+.row-title {
+  color: #e5e5e5;
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+  transition: color 0.3s;
+}
+
+/* [핵심] 라이트 모드일 때 검은색 강제 적용 */
+.row-title.light-text {
+  color: #141414 !important;
+}
+
 .slider-wrapper { position: relative; }
 
 .slider {
@@ -63,7 +80,6 @@ onMounted(() => checkScroll())
 .row-item { flex: 0 0 auto; width: 200px; transition: transform 0.3s; }
 .row-item:hover { z-index: 10; }
 
-/* 기본(다크모드) 화살표 */
 .handle {
   position: absolute; top: 0; bottom: 0; width: 50px;
   background: rgba(0,0,0,0.5); border: none; color: white;
@@ -73,16 +89,6 @@ onMounted(() => checkScroll())
 }
 .slider-wrapper:hover .handle { opacity: 1; }
 .handle:hover { background: rgba(0,0,0,0.8); transform: scale(1.1); }
-
-/* [수정] 라이트 모드 화살표 (센스 있게 변경) */
-:global(body.light-mode) .handle {
-  background: rgba(255, 255, 255, 0.7); /* 밝은 반투명 배경 */
-  color: #333; /* 어두운 아이콘 */
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-:global(body.light-mode) .handle:hover {
-  background: rgba(255, 255, 255, 0.9);
-}
 
 .left-handle { left: -50px; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
 .right-handle { right: -50px; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }

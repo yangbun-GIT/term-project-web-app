@@ -30,6 +30,27 @@ export const useMovieStore = defineStore('movie', () => {
     const enableHover = ref(true) // [New] 호버 확대 효과
 
     // --- Actions ---
+
+    // [핵심 함수] 화면(body)에 실제 클래스를 붙였다 떼는 역할
+    const applyVisualSettings = () => {
+        const body = document.body.classList
+
+        // 1. 테마 적용 (가장 중요)
+        if (theme.value === 'light') {
+            body.add('light-mode')
+            body.remove('dark-mode')
+        } else {
+            body.add('dark-mode')
+            body.remove('light-mode')
+        }
+
+        // 2. 기타 설정 적용
+        fontSize.value === 'large' ? body.add('font-large') : body.remove('font-large')
+        reducedMotion.value ? body.add('reduced-motion') : body.remove('reduced-motion')
+        gridSize.value === 'large' ? body.add('grid-large') : body.remove('grid-large')
+        !enableHover.value ? body.add('no-hover') : body.remove('no-hover')
+    }
+
     const initializeStore = () => {
         const load = (key: string, def: any = null) => {
             const data = localStorage.getItem(key)
@@ -42,13 +63,17 @@ export const useMovieStore = defineStore('movie', () => {
         apiKey.value = localStorage.getItem('TMDb-Key') || ''
         searchHistory.value = load('search-history', [])
         language.value = localStorage.getItem('app-lang') || 'ko-KR'
+
+        // 테마 불러오기
         theme.value = localStorage.getItem('app-theme') || 'dark'
 
-        // [중요] 비주얼 설정 로드 및 즉시 적용
+        // 비주얼 설정 로드
         fontSize.value = localStorage.getItem('font-size') as any || 'normal'
         reducedMotion.value = load('reduced-motion', false)
         gridSize.value = localStorage.getItem('grid-size') as any || 'normal'
         enableHover.value = load('enable-hover', true)
+
+        // [중요] 앱 켜질 때 설정 바로 적용
         applyVisualSettings()
 
         watchHistory.value = load('watch-history', [])
@@ -62,16 +87,6 @@ export const useMovieStore = defineStore('movie', () => {
 
         hideHorror.value = load('content-filter', false)
         showYear.value = load('show-year', false)
-    }
-
-    // --- [핵심] 비주얼 설정 적용 함수 (body 클래스 제어) ---
-    const applyVisualSettings = () => {
-        const body = document.body.classList
-        theme.value === 'light' ? body.add('light-mode') : body.remove('light-mode')
-        fontSize.value === 'large' ? body.add('font-large') : body.remove('font-large')
-        reducedMotion.value ? body.add('reduced-motion') : body.remove('reduced-motion')
-        gridSize.value === 'large' ? body.add('grid-large') : body.remove('grid-large')
-        !enableHover.value ? body.add('no-hover') : body.remove('no-hover')
     }
 
     // --- 기능 함수들 ---
@@ -101,8 +116,13 @@ export const useMovieStore = defineStore('movie', () => {
     const setViewMode = (m: 'table' | 'infinite') => { viewMode.value = m; localStorage.setItem('view-mode', m) }
     const saveLastPath = (p: string) => { if (p !== '/signin') { lastPath.value = p; localStorage.setItem('last-path', p) } }
 
-    // --- [Toggle Functions] 설정 변경 시 즉시 저장 및 적용 ---
-    const toggleTheme = () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; localStorage.setItem('app-theme', theme.value); applyVisualSettings() }
+    // --- [Toggle Functions] 설정 변경 시 applyVisualSettings 호출 필수 ---
+    const toggleTheme = () => {
+        theme.value = theme.value === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('app-theme', theme.value);
+        applyVisualSettings(); // 여기서 body 클래스 변경됨
+    }
+
     const toggleAdult = () => { includeAdult.value = !includeAdult.value; localStorage.setItem('include-adult', String(includeAdult.value)); window.location.reload() }
     const toggleAutoplay = () => { autoplay.value = !autoplay.value; localStorage.setItem('autoplay', String(autoplay.value)) }
     const toggleLowData = () => { lowDataMode.value = !lowDataMode.value; localStorage.setItem('low-data-mode', String(lowDataMode.value)) }
