@@ -1,161 +1,348 @@
 <template>
-  <div class="auth-wrapper">
+  <div class="auth-page">
     <div class="logo-area">
-      <img src="../assets/yjy.png" alt="YJY PROJECT" class="logo-img" />
+      <img src="../assets/yjy.png" alt="YJYFLIX" class="logo-img" />
     </div>
 
-    <div class="auth-box">
-      <div class="student-badge">
-        해당 웹페이지는<br>대학 과제 제출용 데모 사이트입니다.<br>실제 넷플릭스와 무관합니다.
+    <div class="container" :class="{ 'right-panel-active': isSignUpMode }">
+
+      <div class="form-container sign-up-container">
+        <form @submit.prevent="handleSignUp">
+          <h1>회원가입</h1>
+          <div class="social-container">
+            <button type="button" class="social-btn google-btn">
+              <i class="fab fa-google"></i> Google로 시작하기
+            </button>
+          </div>
+          <div class="divider">
+            <span>또는 이메일로 가입</span>
+          </div>
+
+          <div class="input-group">
+            <input type="email" v-model="signupEmail" required placeholder=" " />
+            <label>이메일 주소</label>
+          </div>
+          <div class="input-group">
+            <input type="password" v-model="signupApiKey" required placeholder=" " />
+            <label>비밀번호 (TMDB API KEY) 입력</label>
+          </div>
+          <div class="input-group">
+            <input type="password" v-model="signupApiKeyConfirm" required placeholder=" " />
+            <label>비밀번호 확인</label>
+          </div>
+
+          <button class="action-btn">동의하고 가입하기</button>
+
+          <p class="mobile-text">
+            이미 회원이신가요? <span @click="toggleMode">로그인</span>
+          </p>
+        </form>
       </div>
 
-      <transition name="fade" mode="out-in">
-        <form v-if="isLoginMode" key="login" @submit.prevent="handleLogin">
-          <h2>프로젝트 로그인</h2> <div class="input-group">
-          <input v-model="email" type="text" placeholder="이메일 (임의의 이메일)" required />
+      <div class="form-container sign-in-container">
+        <form @submit.prevent="handleLogin">
+          <h1>로그인</h1>
+          <div class="social-container">
+            <button type="button" class="social-btn google-btn">
+              <i class="fab fa-google"></i> Google로 로그인
+            </button>
+          </div>
+          <div class="divider">
+            <span>또는 이메일/비밀번호</span>
+          </div>
+
+          <div class="input-group">
+            <input type="email" v-model="loginEmail" required placeholder=" " />
+            <label>이메일 주소 (임의로 입력)</label>
+          </div>
+          <div class="input-group">
+            <input type="password" v-model="loginApiKey" required placeholder=" " />
+            <label>비밀번호 (TMDB API KEY)</label>
+          </div>
+
+          <a href="#" class="forgot">도움이 필요하신가요?</a>
+          <button class="action-btn">로그인</button>
+
+          <p class="mobile-text">
+            아직 회원이 아니신가요? <span @click="toggleMode">가입하기</span>
+          </p>
+        </form>
+      </div>
+
+      <div class="overlay-container">
+        <div class="overlay">
+          <div class="overlay-panel overlay-left">
+            <h1>이미 가입하셨나요?</h1>
+            <p>YJYFLIX의 방대한 콘텐츠가<br>당신을 기다리고 있습니다.</p>
+            <button class="ghost-btn" @click="isSignUpMode = false">로그인하기</button>
+          </div>
+          <div class="overlay-panel overlay-right">
+            <h1>영화의 바다로<br>떠나볼까요?</h1>
+            <p>지금 가입하고 수만 편의 영화와<br>시리즈를 무제한으로 즐기세요.</p>
+            <button class="ghost-btn" @click="isSignUpMode = true">회원가입</button>
+          </div>
         </div>
-          <div class="input-group">
-            <input v-model="password" type="password" placeholder="비밀번호 (TMDB API Key)" required />
-          </div>
-
-          <button type="submit" class="submit-btn">프로젝트 로그인</button>
-
-          <div class="separator"><span> </span></div>
-
-          <div class="signup-area">
-            YJYflix 로그인이 필요하신가요? <span @click="toggleMode">회원가입</span>
-          </div>
-
-          <p class="disclaimer" style="color: #e50914; margin-top: 20px; font-size: 0.8rem;">
-            * 본 사이트는 대학 과제 제출용 프로젝트이며, 실제 서비스와 무관합니다. 개인정보를 수집하지 않습니다.
-          </p>
-
-        </form>
-
-        <form v-else key="signup" @submit.prevent="handleSignup">
-          <h2>회원가입</h2>
-          <div class="input-group">
-            <input v-model="email" type="email" placeholder="이메일" required />
-          </div>
-          <div class="input-group">
-            <input v-model="password" type="password" placeholder="비밀번호 (TMDB API Key) 입력" required />
-          </div>
-          <div class="input-group">
-            <input v-model="confirmPassword" type="password" placeholder="비밀번호 확인" required />
-          </div>
-          <button type="submit" class="submit-btn">등록</button>
-          <div class="signup-area">
-            이미 로그인 정보가 있으신가요? <span @click="toggleMode">로그인</span>
-          </div>
-          <p class="disclaimer" style="color: #e50914; margin-top: 20px; font-size: 0.8rem;">
-            * 본 사이트는 대학 과제 제출용 프로젝트이며, 실제 서비스와 무관합니다. 개인정보를 수집하지 않습니다.
-          </p>
-        </form>
-      </transition>
-      <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
 import { useMovieStore } from '../stores/movieStore'
 
-const router = useRouter()
 const store = useMovieStore()
+const router = useRouter()
 
-const isLoginMode = ref(true)
-const email = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const errorMsg = ref('')
+const isSignUpMode = ref(false)
 
-onMounted(() => { document.title = 'YJY Student Project' }) // 제목 확실하게 변경
+// 변수 분리: 로그인용
+const loginEmail = ref('')
+const loginApiKey = ref('')
 
-const toggleMode = () => {
-  isLoginMode.value = !isLoginMode.value
-  errorMsg.value = ''
-  password.value = ''
-  confirmPassword.value = ''
-}
+// 변수 분리: 회원가입용 (이름 제거됨)
+const signupEmail = ref('')
+const signupApiKey = ref('')
+const signupApiKeyConfirm = ref('')
 
-const handleLogin = async () => {
-  try {
-    await axios.get(`https://api.themoviedb.org/3/configuration?api_key=${password.value}`)
-    store.login(email.value, password.value)
+const handleLogin = () => {
+  if (loginEmail.value && loginApiKey.value) {
+    store.login(loginEmail.value, loginApiKey.value)
     router.push('/')
-  } catch (e) {
-    errorMsg.value = '접속 실패: 유효한 TMDB API Key를 입력해주세요.'
+  } else {
+    alert('이메일과 API Key를 입력해주세요.')
   }
 }
 
-const handleSignup = () => {
-  if (password.value !== confirmPassword.value) {
-    errorMsg.value = 'API Key가 일치하지 않습니다.'
+const handleSignUp = () => {
+  if (signupApiKey.value !== signupApiKeyConfirm.value) {
+    alert('API Key가 일치하지 않습니다.')
     return
   }
-  alert('등록되었습니다. 입장합니다.')
-  toggleMode()
+  // 실제로는 여기서 회원가입 API 호출
+  // [수정] 이름 관련 내용 제거
+  alert('환영합니다! 회원가입이 완료되었습니다. 로그인해주세요.')
+  isSignUpMode.value = false
+}
+
+const toggleMode = () => {
+  isSignUpMode.value = !isSignUpMode.value
 }
 </script>
 
 <style scoped>
-.auth-wrapper {
-  position: relative; min-height: 100vh; width: 100%;
-  background-color: #000;
-  background-image: url('../assets/background.png');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+
+.auth-page {
+  display: flex; justify-content: center; align-items: center; flex-direction: column;
+  min-height: 100vh; width: 100%;
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../assets/background.png');
   background-size: cover; background-position: center; background-repeat: no-repeat;
-  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
-.auth-wrapper::before {
-  content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.95) 100%);
-  z-index: 1;
-}
+.logo-area { position: absolute; top: 2rem; left: 3rem; z-index: 100; }
+.logo-img { height: 4rem; width: auto; transition: 0.3s; }
 
-.logo-area { position: absolute; top: 20px; left: 40px; z-index: 10; }
-.logo-img { height: 80px; object-fit: contain; }
-
-.auth-box {
-  position: relative; z-index: 10;
+.container {
   background-color: rgba(0, 0, 0, 0.75);
-  padding: 40px 68px 40px; /* 패딩 조정 */
-  border-radius: 4px;
-  width: 100%; max-width: 450px; min-height: 500px;
-  color: white;
-  box-shadow: 0 0 50px 10px rgba(0, 0, 0, 0.9);
+  border-radius: 15px;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.5), 0 10px 10px rgba(0,0,0,0.4);
+  position: relative; overflow: hidden;
+  width: 100%; max-width: 1000px;
+  height: 700px; min-height: 700px;
+  margin: 0 20px;
+  backdrop-filter: blur(5px);
+  display: flex;
 }
 
-/* [추가] 학생 과제 배너 스타일 */
-.student-badge {
-  background-color: rgba(229, 9, 20, 0.2);
-  border: 1px solid #e50914;
-  color: #fff;
-  padding: 10px;
-  border-radius: 4px;
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 0.9rem;
-  line-height: 1.4;
+.form-container {
+  position: absolute; top: 0; height: 100%;
+  transition: all 0.6s ease-in-out;
+  display: flex; align-items: center; justify-content: center;
+  will-change: transform, opacity;
 }
 
-h2 { font-size: 2rem; font-weight: 700; margin-bottom: 28px; }
-.input-group { margin-bottom: 16px; }
-.input-group input { width: 100%; height: 50px; background: #333; border: none; border-radius: 4px; color: white; padding: 0 20px; font-size: 1rem; box-sizing: border-box; }
-.input-group input:focus { background: #454545; outline: none; border-bottom: 2px solid #e87c03; }
-.submit-btn { width: 100%; height: 48px; background: #e50914; color: white; font-size: 1rem; font-weight: 700; border: none; border-radius: 4px; cursor: pointer; margin-top: 24px; }
-.submit-btn:hover { background: #f6121d; }
-.separator { text-align: center; margin: 15px 0; color: #b3b3b3; font-size: 0.9rem; }
-.signup-area { color: #737373; font-size: 1rem; margin-top: 20px; }
-.signup-area span { color: white; cursor: pointer; margin-left: 5px; }
-.signup-area span:hover { text-decoration: underline; }
-.error-msg { color: #e87c03; margin-top: 20px; font-size: 0.9rem; }
+.sign-in-container { left: 0; width: 50%; z-index: 2; }
+.sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
 
-@media (max-width: 740px) {
-  .auth-wrapper { background-image: none; background-color: black; align-items: flex-start; }
-  .auth-box { background-color: black; padding: 20px; max-width: 100%; min-height: 100vh; box-shadow: none; }
+.container.right-panel-active .sign-in-container { transform: translateX(100%); opacity: 0; z-index: 1; }
+.container.right-panel-active .sign-up-container { transform: translateX(100%); opacity: 1; z-index: 5; animation: show 0.6s; }
+
+@keyframes show {
+  0%, 49.99% { opacity: 0; z-index: 1; }
+  50%, 100% { opacity: 1; z-index: 5; }
+}
+
+form {
+  background-color: transparent; color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; width: 100%;
+  padding: 0 10%; text-align: center;
+}
+
+h1 { font-weight: 700; margin-bottom: 1.5rem; font-size: 2.2rem; }
+
+.social-container { margin: 1rem 0; width: 100%; }
+.social-btn {
+  width: 100%; padding: 0.8rem; border-radius: 4px; border: none;
+  background: #fff; color: #333; font-weight: bold; cursor: pointer; font-size: 1rem;
+  display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s;
+}
+.social-btn:hover { background: #e6e6e6; }
+
+.divider {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; margin: 1.5rem 0; color: #bbb; font-size: 0.85rem;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: #555; margin: 0 10px;
+}
+
+/* [겹침 해결] 입력창 스타일 */
+.input-group { position: relative; width: 100%; margin: 0.8rem 0; }
+
+.input-group input {
+  background-color: #333333;
+  border: none;
+  border-bottom: 2px solid transparent;
+  /* [중요] 상단 패딩을 크게 주어 글자가 아래쪽에 찍히게 함 */
+  padding: 1.5rem 1rem 0.5rem;
+  width: 100%;
+  border-radius: 4px;
+  color: #ffffff;
+  font-weight: 500;
+  outline: none; font-size: 1rem;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+  background-color: #454545;
+  border-bottom-color: #e50914;
+  box-shadow: 0 1px 0 0 #e50914;
+}
+
+.input-group input:-webkit-autofill,
+.input-group input:-webkit-autofill:hover,
+.input-group input:-webkit-autofill:focus,
+.input-group input:-webkit-autofill:active{
+  -webkit-box-shadow: 0 0 0 30px #333333 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.input-group label {
+  position: absolute;
+  /* 기본 위치: 입력창 중앙 */
+  top: 50%; left: 1rem;
+  transform: translateY(-50%);
+  color: #a0a0a0;
+  font-size: 1rem;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+/* [중요] 플로팅 라벨 위치 조정 */
+.input-group input:focus ~ label,
+.input-group input:not(:placeholder-shown) ~ label {
+  /* 활성 시: 상단으로 이동하고 작아짐 */
+  top: 0.4rem;
+  left: 1rem;
+  font-size: 0.7rem;
+  font-weight: bold;
+  transform: translateY(0);
+  color: #ccc;
+}
+
+.forgot { color: #b3b3b3; font-size: 0.85rem; text-decoration: none; margin: 1rem 0; align-self: flex-end; }
+.forgot:hover { text-decoration: underline; }
+
+.action-btn {
+  border-radius: 4px; border: none; background-color: #E50914;
+  color: #FFFFFF; font-size: 1rem; font-weight: 700; padding: 1rem 0;
+  letter-spacing: 0.5px; width: 100%; transition: 0.3s; margin-top: 1.5rem; cursor: pointer;
+}
+.action-btn:hover { background-color: #f6121d; }
+
+.mobile-text { display: none; margin-top: 20px; font-size: 0.9rem; color: #aaa; }
+.mobile-text span { color: #fff; font-weight: bold; cursor: pointer; margin-left: 5px; text-decoration: underline; }
+
+/* 오버레이 */
+.overlay-container {
+  position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden;
+  transition: transform 0.6s ease-in-out; z-index: 100;
+  will-change: transform;
+}
+.container.right-panel-active .overlay-container { transform: translateX(-100%); }
+
+.overlay {
+  background: #000;
+  background: linear-gradient(to right, #000000, #8b0000);
+  background-repeat: no-repeat; background-size: cover; background-position: 0 0;
+  color: #ffffff; position: relative; left: -100%; height: 100%; width: 200%;
+  transform: translateX(0); transition: transform 0.6s ease-in-out;
+  will-change: transform;
+}
+.container.right-panel-active .overlay { transform: translateX(50%); }
+
+.overlay-panel {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; padding: 0 40px; text-align: center; top: 0; height: 100%; width: 50%;
+  transition: transform 0.6s ease-in-out;
+  will-change: transform;
+}
+
+.overlay-panel h1 { font-size: 2.5rem; margin-bottom: 1rem; line-height: 1.2; }
+.overlay-panel p { font-size: 1rem; line-height: 1.5; margin-bottom: 2rem; font-weight: 300; opacity: 0.9; }
+
+.ghost-btn {
+  background-color: transparent; border: 1px solid #ffffff; color: #ffffff;
+  padding: 0.8rem 2.5rem; font-size: 0.9rem; font-weight: bold; letter-spacing: 1px;
+  text-transform: uppercase; transition: 0.3s; border-radius: 4px; cursor: pointer;
+}
+.ghost-btn:hover { background-color: #ffffff; color: #000; }
+
+.overlay-left { transform: translateX(-20%); }
+.container.right-panel-active .overlay-left { transform: translateX(-40px); }
+.overlay-right { right: 0; transform: translateX(40px); }
+.container.right-panel-active .overlay-right { transform: translateX(20%); }
+
+/* 모바일 반응형 */
+@media (max-width: 900px) {
+  .logo-area { top: 1.5rem; left: 1.5rem; }
+  .logo-img { height: 2.5rem; }
+
+  .container {
+    width: 90%; max-width: 450px;
+    height: auto; min-height: auto;
+    padding-bottom: 40px; margin-top: 80px;
+  }
+
+  .overlay-container { display: none; }
+
+  .form-container {
+    position: relative; width: 100%; height: auto; top: 0;
+    transition: none;
+  }
+  .sign-in-container, .sign-up-container { width: 100%; }
+
+  .sign-in-container { display: flex; opacity: 1; z-index: 5; }
+  .sign-up-container { display: none; opacity: 0; }
+
+  .container.right-panel-active .sign-in-container { display: none; opacity: 0; }
+  .container.right-panel-active .sign-up-container { display: flex; opacity: 1; animation: fadeIn 0.5s; transform: none; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .mobile-text { display: block; }
+
+  h1 { font-size: 1.8rem; margin-bottom: 1rem; }
+  .input-group input { padding: 1.2rem 1rem 0.5rem; font-size: 0.9rem; }
+  .action-btn { padding: 0.8rem 0; margin-top: 1rem; }
 }
 </style>

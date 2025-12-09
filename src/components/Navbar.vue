@@ -87,12 +87,39 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.r
 .logo-link { display: flex; align-items: center; cursor: pointer; margin-right: 20px; }
 .logo-img { height: 60px; width: auto; object-fit: contain; display: block; }
 .links { display: flex; gap: 20px; }
-.links a { color: #e5e5e5; text-decoration: none; font-size: 0.9rem; transition: 0.3s; }
+
+/* [애니메이션] 메뉴 아이템 스타일 */
+.links a {
+  color: #e5e5e5;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: 0.3s;
+  position: relative; /* 가상 요소를 위한 기준점 */
+  padding-bottom: 5px;
+}
+
+/* [애니메이션] 밑줄 효과 (가상 요소) */
+.links a::after {
+  content: '';
+  position: absolute;
+  width: 0; /* 평소엔 너비 0 */
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: #e50914; /* 넷플릭스 레드 */
+  transition: width 0.3s ease-in-out; /* 부드럽게 늘어남 */
+}
+
+/* 호버하거나 현재 활성화된 메뉴일 때 밑줄 꽉 채움 */
+.links a:hover::after,
+.links a.router-link-active::after {
+  width: 100%;
+}
+
 .links a:hover, .links a.router-link-active { color: #fff; font-weight: bold; }
+
 .right-section { display: flex; align-items: center; gap: 20px; color: white; }
 .icon { font-size: 1.2rem; cursor: pointer; }
-
-/* 아이콘 간격 조정 */
 .theme-btn { margin-right: 5px; font-size: 1.2rem; transition: transform 0.3s; }
 .theme-btn:hover { color: #e50914; transform: rotate(20deg); }
 .setting-btn { margin-right: 5px; transition: transform 0.3s; }
