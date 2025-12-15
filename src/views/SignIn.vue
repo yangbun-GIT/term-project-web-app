@@ -8,7 +8,7 @@
 
       <div class="form-container sign-up-container">
         <form @submit.prevent="handleSignUp">
-          <h1>멤버십 시작하기</h1>
+          <h1>회원 가입</h1>
           <div class="social-container">
             <button type="button" class="social-btn google-btn">
               <i class="fab fa-google"></i> Google로 시작하기
