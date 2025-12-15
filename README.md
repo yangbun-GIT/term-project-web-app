@@ -50,19 +50,13 @@ GPT와 같은 AI 도구를 활용하여 개발 생산성을 높이고, **GitHub 
 이 프로젝트는 `Node.js` 환경에서 실행됩니다. 아래 명령어를 순서대로 입력해주세요.
 
 ```bash
-# 1. 레포지토리 클론
-git clone [https://github.com/yangbun-GIT/WSD-Assignment-02.git](https://github.com/yangbun-GIT/WSD-Assignment-02.git)
-
-# 2. 프로젝트 폴더로 이동
-cd WSD-Assignment-02
-
-# 3. 의존성 패키지 설치 (node_modules 생성)
+# 1. 의존성 패키지 설치 (필수)
 npm install
 
-# 4. 개발 서버 실행
+# 2. 개발 서버 실행
 npm run dev
 
-# 5. 프로덕션 빌드 (배포용)
+# 3. 프로덕션 빌드 (배포용)
 npm run build
 ```
 > **Note:** `node_modules` 폴더는 `.gitignore`에 의해 제외되어 있습니다. 반드시 `npm install`을 먼저 실행해야 합니다.
