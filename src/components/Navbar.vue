@@ -125,14 +125,19 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.r
 </script>
 
 <style>
+/* 전역 스타일 */
 html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+
+/* [수정] 라이트 모드일 때 햄버거 버튼 색상 강제 변경 */
+body.light-mode .mobile-menu-btn { color: #141414 !important; }
 </style>
 
 <style scoped>
-/* 레이아웃 구조 */
+/* Navbar 레이아웃 */
 .navbar {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 0 4%; position: fixed; top: 0; left: 0; width: 100%; max-width: 100vw;
+  padding: 0 4%;
+  position: fixed; top: 0; left: 0; width: 100%; max-width: 100vw;
   z-index: 1000; height: 70px; box-sizing: border-box;
   transition: background-color 0.4s ease;
   background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
@@ -140,33 +145,44 @@ html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
 .navbar.black-nav { background-color: #141414; }
 .navbar.hover-nav { background-color: rgba(0,0,0,0.9); }
 
+/* [추가] 라이트 모드일 때 Navbar 배경 */
+:global(body.light-mode) .navbar.black-nav,
+:global(body.light-mode) .navbar.hover-nav {
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 .nav-left, .nav-right { display: flex; align-items: center; }
-.nav-left { gap: 20px; }
+.nav-left { gap: 30px; }
 .nav-right { gap: 15px; }
 
-/* [수정] 로고 크기 확대 (35px -> 45px) */
 .logo-img { height: 50px; width: auto; display: block; }
 .mobile-logo { display: none; }
 
-/* [수정] 메뉴 링크 폰트 확대 (0.9rem -> 1.15rem) */
-.links { display: flex; gap: 25px; } /* 간격도 조금 넓힘 */
+.links { display: flex; gap: 30px; }
 .links a { color: #e5e5e5; text-decoration: none; font-size: 1.1rem; transition: 0.3s; }
 .links a:hover, .links a.router-link-active { color: #fff; font-weight: bold; }
+/* 라이트 모드에서 PC 링크 색상 */
+:global(body.light-mode) .links a { color: #333; }
+:global(body.light-mode) .links a:hover,
+:global(body.light-mode) .links a.router-link-active { color: #e50914; }
 
-/* 아이콘 버튼들 */
-.icon { font-size: 1.3rem; cursor: pointer; color: white; transition: 0.3s; }
+.icon { font-size: 1.4rem; cursor: pointer; color: white; transition: 0.3s; }
+/* 라이트 모드 아이콘 색상 */
+:global(body.light-mode) .icon { color: #333 !important; }
+
 .pc-actions { display: flex; align-items: center; gap: 15px; }
 
 /* 검색창 */
 .search-box { display: flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid transparent; transition: 0.3s; }
 .search-box.active { border: 1px solid #fff; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 4px; }
-.search-box input { background: transparent; border: none; color: white; width: 0; outline: none; transition: width 0.3s; }
-.search-box.active input { width: 150px; }
+.search-box input { background: transparent; border: none; color: white; width: 0; outline: none; transition: width 0.3s; font-size: 1rem; }
+.search-box.active input { width: 180px; }
 
 .nav-lang-selector { background: transparent; color: #fff; border: 1px solid #fff; border-radius: 4px; padding: 2px 5px; font-size: 0.9rem; cursor: pointer; }
 .nav-lang-selector option { background: #333; color: #fff; }
 
-/* 테마 관련 */
+/* 라이트 모드 검색창 & 선택기 */
 .search-box.active.light-theme-box { background: #ffffff !important; border: 1px solid #ccc !important; }
 .search-box.light-theme-box input { color: #333333 !important; }
 .search-box.light-theme-box .icon { color: #333333 !important; }
@@ -175,13 +191,17 @@ html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
 
 /* 프로필 메뉴 */
 .profile-menu { position: relative; display: flex; align-items: center; gap: 5px; cursor: pointer; }
-.profile-icon img { width: 32px; height: 32px; border-radius: 4px; }
+.profile-icon img { width: 35px; height: 35px; border-radius: 4px; }
 .dropdown-arrow { font-size: 0.7rem; color: white; }
+:global(body.light-mode) .dropdown-arrow { color: #333; }
+
 .dropdown { position: absolute; top: 100%; right: 0; padding-top: 10px; display: none; }
 .profile-menu:hover .dropdown { display: block; }
 
 .dropdown-content { background-color: rgba(0,0,0,0.95); border: 1px solid #333; width: 180px; padding: 15px; display: flex; flex-direction: column; gap: 10px; border-radius: 4px; }
-.dropdown-content.light-mobile { background: #fff; color: #333; border-color: #ddd; }
+
+/* 모바일 드롭다운 라이트 모드 */
+.dropdown-content.light-mobile { background: #fff; color: #333; border-color: #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 .user-info { font-size: 0.9rem; font-weight: bold; }
 .drop-link, .logout-btn { color: #ccc; text-decoration: none; font-size: 0.9rem; background: none; border: none; text-align: left; cursor: pointer; }
 .drop-link:hover, .logout-btn:hover { color: white; }
@@ -195,23 +215,36 @@ html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
 .dropdown-content.light-mobile .menu-item:hover { color: #e50914; }
 .mobile-lang-select { background: transparent; color: inherit; border: 1px solid #555; border-radius: 4px; padding: 2px; font-size: 0.8rem; }
 
-.mobile-menu-btn { display: none; font-size: 1.4rem; color: white; cursor: pointer; margin-right: 10px; }
-:global(body.light-mode) .mobile-menu-btn { color: #141414 !important; }
+.mobile-menu-btn { display: none; font-size: 1.5rem; color: white; cursor: pointer; margin-right: 10px; }
 
+/* 모바일 메뉴 오버레이 */
 .mobile-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; }
 .mobile-menu-content { width: 70%; max-width: 280px; height: 100%; background: #141414; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
-.mobile-menu-content.light-mobile { background: #fff; color: #333; }
+
+/* [수정] 모바일 메뉴 라이트 모드 스타일 강화 */
+.mobile-menu-content.light-mobile {
+  background: #ffffff;
+  color: #333333;
+}
+.mobile-menu-content.light-mobile .close-menu { color: #333; }
+.mobile-menu-content.light-mobile .mobile-user { color: #333; font-weight: bold; }
+
 .mobile-links a { display: block; font-size: 1.1rem; color: #aaa; margin-bottom: 15px; text-decoration: none; }
 .mobile-links a.router-link-active { color: white; font-weight: bold; border-left: 3px solid #e50914; padding-left: 10px; }
-.mobile-menu-content.light-mobile .mobile-links a.router-link-active { color: #333; }
+
+/* 모바일 메뉴 링크 라이트 모드 */
+.mobile-menu-content.light-mobile .mobile-links a { color: #666; }
+.mobile-menu-content.light-mobile .mobile-links a.router-link-active {
+  color: #333;
+  border-left-color: #e50914;
+}
 
 @media (max-width: 768px) {
   .links, .pc-actions, .pc-logo { display: none !important; }
   .mobile-menu-btn { display: block; }
-  .mobile-logo { display: block; position: absolute; left: 50%; transform: translateX(-50%); }
 
-  /* 모바일 로고는 기존 크기 유지 (너무 크면 네비바 깨짐) */
-  .logo-img { height: 35px; }
+  .mobile-logo { display: block; position: absolute; left: 50%; transform: translateX(-50%); }
+  .logo-img { height: 35px; } /* 모바일 로고 크기 원복 */
 
   .mobile-actions-menu { display: flex; }
   .navbar { padding: 0 4%; }
