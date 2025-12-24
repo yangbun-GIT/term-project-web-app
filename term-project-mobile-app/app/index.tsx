@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList,
-    Image, SafeAreaView, Modal, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform
+    Image, SafeAreaView, Modal, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Alert
 } from 'react-native';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc } from "firebase/firestore";
+import {
+    getFirestore, collection, query, orderBy, onSnapshot,
+    addDoc, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove
+} from "firebase/firestore";
 import axios from 'axios';
 
 // =================================================================
-// ⚙️ 1. 설정 (API Key & Firebase Config) - [여기를 수정하세요!]
+// ⚙️ 1. 설정 (API Key & Firebase Config)
 // =================================================================
 
-// TODO: 웹 프로젝트의 .env 파일에 있는 VITE_TMDB_API_KEY 값을 복사해 넣으세요.
 const TMDB_API_KEY = "2880ac77339fca10a79bd2e5fd5119d1";
 
-// TODO: 웹 프로젝트의 src/firebase.ts 파일에 있는 firebaseConfig 내용을 복사해 넣으세요.
 const firebaseConfig = {
     apiKey: "AIzaSyCMRPD1unHZ_nVaA5rSLmbvbfaLdRBLKCY",
     authDomain: "term-project-web-app.firebaseapp.com",
@@ -32,13 +33,12 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // =================================================================
-// 🚀 메인 앱 컴포넌트 (로그인 여부 체크)
+// 🚀 메인 앱 컴포넌트
 // =================================================================
 export default function App() {
     const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        // 로그인 상태 감지
         const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
         return unsubscribe;
     }, []);
@@ -70,7 +70,7 @@ function LoginScreen() {
             <Text style={styles.logoText}>YJYFLIX</Text>
             <Text style={styles.subText}>Mobile App</Text>
             <TextInput
-                style={styles.input} placeholder="이메일 (웹과 동일 계정)" placeholderTextColor="#888"
+                style={styles.input} placeholder="이메일" placeholderTextColor="#888"
                 value={email} onChangeText={setEmail} autoCapitalize="none"
             />
             <TextInput
@@ -85,46 +85,63 @@ function LoginScreen() {
 }
 
 // =================================================================
-// 🏠 메인 탭 화면 (홈 / 검색 / 찜 목록)
+// 🏠 메인 탭 화면
 // =================================================================
 function MainTabScreen({ user }: { user: any }) {
-    const [currentTab, setCurrentTab] = useState('home'); // 'home' | 'search' | 'wishlist'
-    const [selectedMovie, setSelectedMovie] = useState<any>(null); // 선택된 영화 (채팅 모달용)
+    const [currentTab, setCurrentTab] = useState('home');
+    const [selectedMovie, setSelectedMovie] = useState<any>(null);
+    const [wishlist, setWishlist] = useState<any[]>([]);
+
+    useEffect(() => {
+        const userRef = doc(db, "users", user.uid);
+        const unsubscribe = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setWishlist(data.wishlist || []);
+            }
+        });
+        return unsubscribe;
+    }, [user.uid]);
 
     const renderContent = () => {
         switch (currentTab) {
+            case 'wishlist': return <WishlistScreen wishlist={wishlist} onSelectMovie={setSelectedMovie} />;
             case 'home': return <HomeScreen onSelectMovie={setSelectedMovie} />;
             case 'search': return <SearchScreen onSelectMovie={setSelectedMovie} />;
-            case 'wishlist': return <WishlistScreen user={user} onSelectMovie={setSelectedMovie} />;
             default: return <HomeScreen onSelectMovie={setSelectedMovie} />;
         }
     };
 
     return (
         <View style={styles.container}>
-            {/* 상단 헤더 */}
             <View style={styles.header}>
-                <Text style={styles.headerLogo}>YJYFLIX</Text>
+                <TouchableOpacity onPress={() => setCurrentTab('home')}>
+                    <Text style={styles.headerLogo}>YJYFLIX</Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => signOut(auth)}>
                     <Text style={styles.logoutText}>로그아웃</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* 메인 컨텐츠 (탭에 따라 바뀜) */}
             <View style={{ flex: 1 }}>
                 {renderContent()}
             </View>
 
-            {/* 하단 탭바 */}
             <View style={styles.tabBar}>
+                <TabButton title="❤️ 찜 목록" isActive={currentTab === 'wishlist'} onPress={() => setCurrentTab('wishlist')} />
                 <TabButton title="🏠 홈" isActive={currentTab === 'home'} onPress={() => setCurrentTab('home')} />
                 <TabButton title="🔍 검색" isActive={currentTab === 'search'} onPress={() => setCurrentTab('search')} />
-                <TabButton title="❤️ 찜 목록" isActive={currentTab === 'wishlist'} onPress={() => setCurrentTab('wishlist')} />
             </View>
 
-            {/* 채팅 모달 (영화 선택 시 뜸) */}
             <Modal visible={!!selectedMovie} animationType="slide" onRequestClose={() => setSelectedMovie(null)}>
-                {selectedMovie && <ChatRoom user={user} movie={selectedMovie} onClose={() => setSelectedMovie(null)} />}
+                {selectedMovie && (
+                    <ChatRoom
+                        user={user}
+                        movie={selectedMovie}
+                        wishlist={wishlist}
+                        onClose={() => setSelectedMovie(null)}
+                    />
+                )}
             </Modal>
         </View>
     );
@@ -137,34 +154,55 @@ const TabButton = ({ title, isActive, onPress }: any) => (
 );
 
 // =================================================================
-// 1️⃣ [탭 1] 홈 화면 (인기 영화)
+// 1️⃣ 홈 화면
 // =================================================================
 function HomeScreen({ onSelectMovie }: any) {
-    const [movies, setMovies] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [movies, setMovies] = useState<any[]>([]);
+    const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        const fetchPopular = async () => {
-            try {
-                const res = await axios.get(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_API_KEY}&language=ko-KR`);
-                setMovies(res.data.results);
-            } catch (e) { console.error(e); } finally { setLoading(false); }
-        };
-        fetchPopular();
-    }, []);
+    const fetchMovies = async (pageNum: number) => {
+        if (loading) return;
+        setLoading(true);
+        try {
+            const res = await axios.get(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_API_KEY}&language=ko-KR&page=${pageNum}`);
+            const newMovies = res.data.results;
 
-    if (loading) return <ActivityIndicator size="large" color="#e50914" style={{marginTop:50}} />;
+            setMovies(prev => {
+                const combinedMovies = pageNum === 1 ? newMovies : [...prev, ...newMovies];
+                const uniqueMoviesMap = new Map(combinedMovies.map((m: any) => [m.id, m]));
+                return Array.from(uniqueMoviesMap.values());
+            });
+
+        } catch (e) { console.error(e); }
+        finally { setLoading(false); }
+    };
+
+    useEffect(() => { fetchMovies(1); }, []);
+
+    const loadMore = () => {
+        if (!loading) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            fetchMovies(nextPage);
+        }
+    };
 
     return (
         <View style={styles.pageContainer}>
-            <Text style={styles.pageTitle}>🔥 지금 뜨는 콘텐츠</Text>
-            <MovieGrid movies={movies} onSelectMovie={onSelectMovie} />
+            <Text style={styles.pageTitle}>🔥 인기 콘텐츠</Text>
+            <MovieGrid
+                movies={movies}
+                onSelectMovie={onSelectMovie}
+                onEndReached={loadMore}
+                loading={loading}
+            />
         </View>
     );
 }
 
 // =================================================================
-// 2️⃣ [탭 2] 검색 화면
+// 2️⃣ 검색 화면
 // =================================================================
 function SearchScreen({ onSelectMovie }: any) {
     const [queryText, setQueryText] = useState("");
@@ -177,7 +215,8 @@ function SearchScreen({ onSelectMovie }: any) {
         Keyboard.dismiss();
         try {
             const res = await axios.get(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&language=ko-KR&query=${queryText}`);
-            setMovies(res.data.results);
+            const uniqueMoviesMap = new Map(res.data.results.map((m: any) => [m.id, m]));
+            setMovies(Array.from(uniqueMoviesMap.values()) as any);
         } catch (e) { alert("검색 실패"); } finally { setLoading(false); }
     };
 
@@ -196,7 +235,6 @@ function SearchScreen({ onSelectMovie }: any) {
                     <Text style={styles.btnTextSmall}>검색</Text>
                 </TouchableOpacity>
             </View>
-
             {loading ? <ActivityIndicator color="#e50914" style={{marginTop:20}} /> : (
                 <MovieGrid movies={movies} onSelectMovie={onSelectMovie} emptyMessage="검색 결과가 없습니다." />
             )}
@@ -205,23 +243,9 @@ function SearchScreen({ onSelectMovie }: any) {
 }
 
 // =================================================================
-// 3️⃣ [탭 3] 찜 목록 화면 (실시간 연동)
+// 3️⃣ 찜 목록 화면
 // =================================================================
-function WishlistScreen({ user, onSelectMovie }: any) {
-    const [wishlist, setWishlist] = useState([]);
-
-    useEffect(() => {
-        // 웹과 동일한 Firestore 경로(users -> uid) 구독
-        const userRef = doc(db, "users", user.uid);
-        const unsubscribe = onSnapshot(userRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                setWishlist(data.wishlist || []);
-            }
-        });
-        return unsubscribe;
-    }, [user.uid]);
-
+function WishlistScreen({ wishlist, onSelectMovie }: any) {
     return (
         <View style={styles.pageContainer}>
             <Text style={styles.pageTitle}>❤️ 내가 찜한 콘텐츠 ({wishlist.length})</Text>
@@ -231,36 +255,64 @@ function WishlistScreen({ user, onSelectMovie }: any) {
 }
 
 // =================================================================
-// 💬 [공통] 영화 그리드 & 채팅방 UI
+// 💬 [공통] 영화 그리드 (Top 버튼 위치 조정됨)
 // =================================================================
-function MovieGrid({ movies, onSelectMovie, emptyMessage }: any) {
+function MovieGrid({ movies, onSelectMovie, emptyMessage, onEndReached, loading }: any) {
+    const flatListRef = useRef<FlatList>(null);
+    const [showTopBtn, setShowTopBtn] = useState(false);
+
+    const handleScroll = (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setShowTopBtn(offsetY > 300);
+    };
+
+    const scrollToTop = () => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    };
+
     if (!movies || movies.length === 0) {
         return <Text style={styles.emptyText}>{emptyMessage}</Text>;
     }
+
     return (
-        <FlatList
-            data={movies}
-            keyExtractor={(item: any) => String(item.id)}
-            numColumns={3}
-            renderItem={({ item }) => (
-                <TouchableOpacity style={styles.posterContainer} onPress={() => onSelectMovie(item)}>
-                    <Image
-                        source={{ uri: `https://image.tmdb.org/t/p/w500${item.poster_path}` }}
-                        style={styles.poster}
-                        resizeMode="cover"
-                    />
+        <View style={{ flex: 1 }}>
+            <FlatList
+                ref={flatListRef}
+                data={movies}
+                keyExtractor={(item: any) => String(item.id)}
+                numColumns={3}
+                onEndReached={onEndReached}
+                onEndReachedThreshold={0.5}
+                onScroll={handleScroll}
+                ListFooterComponent={loading ? <ActivityIndicator size="small" color="#e50914" style={{margin: 20}}/> : null}
+                renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.posterContainer} onPress={() => onSelectMovie(item)}>
+                        <Image
+                            source={{ uri: `https://image.tmdb.org/t/p/w500${item.poster_path}` }}
+                            style={styles.poster}
+                            resizeMode="cover"
+                        />
+                    </TouchableOpacity>
+                )}
+            />
+            {showTopBtn && (
+                <TouchableOpacity style={styles.topBtn} onPress={scrollToTop}>
+                    <Text style={styles.topBtnText}>↑</Text>
                 </TouchableOpacity>
             )}
-        />
+        </View>
     );
 }
 
-function ChatRoom({ user, movie, onClose }: any) {
+// =================================================================
+// 🎬 채팅방
+// =================================================================
+function ChatRoom({ user, movie, wishlist, onClose }: any) {
     const [messages, setMessages] = useState<any[]>([]);
     const [text, setText] = useState("");
+    const isLiked = wishlist.some((m: any) => m.id === movie.id);
 
     useEffect(() => {
-        // 웹과 동일한 채팅 경로 구독
         const q = query(collection(db, "movies", String(movie.id), "messages"), orderBy("createdAt", "asc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -278,12 +330,32 @@ function ChatRoom({ user, movie, onClose }: any) {
         } catch (e) { alert("전송 실패"); }
     };
 
+    const toggleWishlist = async () => {
+        const userRef = doc(db, "users", user.uid);
+        try {
+            if (isLiked) {
+                const movieToRemove = wishlist.find((m: any) => m.id === movie.id) || movie;
+                await updateDoc(userRef, { wishlist: arrayRemove(movieToRemove) });
+                Alert.alert("삭제됨", "찜 목록에서 삭제되었습니다.");
+            } else {
+                const movieData = {
+                    id: movie.id, title: movie.title,
+                    poster_path: movie.poster_path, vote_average: movie.vote_average || 0
+                };
+                await updateDoc(userRef, { wishlist: arrayUnion(movieData) });
+                Alert.alert("추가됨", "찜 목록에 추가되었습니다! ❤️");
+            }
+        } catch (e) { Alert.alert("오류", "찜 목록 수정 중 오류가 발생했습니다."); }
+    };
+
     return (
         <SafeAreaView style={styles.chatContainer}>
             <View style={styles.chatHeader}>
                 <TouchableOpacity onPress={onClose}><Text style={styles.closeBtn}>✕</Text></TouchableOpacity>
                 <Text style={styles.chatTitle} numberOfLines={1}>{movie.title}</Text>
-                <View style={{width: 30}} />
+                <TouchableOpacity onPress={toggleWishlist} style={{ padding: 5 }}>
+                    <Text style={{ fontSize: 24 }}>{isLiked ? "❤️" : "🤍"}</Text>
+                </TouchableOpacity>
             </View>
 
             <FlatList
@@ -308,7 +380,7 @@ function ChatRoom({ user, movie, onClose }: any) {
 }
 
 // =================================================================
-// 🎨 스타일 (넷플릭스 다크 모드)
+// 🎨 스타일 (Top 버튼 위치: right 30, bottom 15로 수정)
 // =================================================================
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#000', paddingTop: Platform.OS === 'android' ? 25 : 0 },
@@ -344,7 +416,7 @@ const styles = StyleSheet.create({
 
     chatContainer: { flex: 1, backgroundColor: '#111' },
     chatHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#333' },
-    chatTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', flex: 1, textAlign: 'center' },
+    chatTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', flex: 1, textAlign: 'center', marginRight: 10 },
     closeBtn: { color: '#fff', fontSize: 24, padding: 5 },
     bubble: { padding: 10, borderRadius: 10, marginVertical: 5, marginHorizontal: 10, maxWidth: '80%' },
     myMsg: { backgroundColor: '#e50914', alignSelf: 'flex-end' },
@@ -353,5 +425,30 @@ const styles = StyleSheet.create({
     msgText: { color: '#fff', fontSize: 16 },
     inputArea: { flexDirection: 'row', padding: 10, borderTopWidth: 1, borderTopColor: '#333', alignItems: 'center', backgroundColor: '#000' },
     inputField: { flex: 1, backgroundColor: '#333', color: '#fff', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, marginRight: 10 },
-    sendText: { color: '#e50914', fontWeight: 'bold', fontSize: 16 }
+    sendText: { color: '#e50914', fontWeight: 'bold', fontSize: 16 },
+
+    // [수정] Top 버튼 위치 조정 (right: 30, bottom: 15)
+    topBtn: {
+        position: 'absolute',
+        bottom: 15, // 아래로 더 내림
+        right: 30,  // 오른쪽으로 이동 (기존 60 -> 30)
+        backgroundColor: '#e50914',
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 5,
+        zIndex: 999,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    topBtnText: {
+        color: '#fff',
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginTop: -3
+    }
 });
