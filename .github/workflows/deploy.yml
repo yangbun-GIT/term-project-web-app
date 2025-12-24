@@ -2,27 +2,35 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main  # main 브랜치에 푸시될 때마다 실행
+    branches: [ "main" ] # main 브랜치에 푸시되면 실행
 
 permissions:
   contents: write
 
 jobs:
   build-and-deploy:
-    concurrency: ci-${{ github.ref }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
 
-      - name: Install and Build
-        run: |
-          npm install
-          npm run build
-
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Setup Node.js ⚙️
+        uses: actions/setup-node@v4
         with:
-          folder: dist # 빌드 결과물 폴더
-          branch: gh-pages # 배포할 브랜치 (자동 생성됨)
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies 🔧
+        run: npm ci
+
+      - name: Build 🏗️
+        env:
+          # 아까 등록한 시크릿을 여기서 가져와서 빌드에 사용합니다
+          VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
+        run: npm run build
+
+      - name: Deploy to gh-pages 🚀
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist # Vite 빌드 결과물 폴더
