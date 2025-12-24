@@ -99,7 +99,6 @@ import SettingsModal from './SettingsModal.vue'
 import { getAuth, signOut } from 'firebase/auth'
 
 const store = useMovieStore()
-// [수정] storeToRefs에서 email이 아닌 user를 가져옵니다.
 const { user, theme, language } = storeToRefs(store)
 
 const isScrolled = ref(false)
@@ -119,21 +118,22 @@ const handleClickOutside = (event: MouseEvent) => { if (showSearch.value && sear
 const handleLogout = async () => {
   try {
     const auth = getAuth()
-    await signOut(auth) // Firebase 서버 세션 종료
+    await signOut(auth) // 1. Firebase 서버 세션 종료
 
-    store.logout()      // Pinia 스토어 초기화
+    // [수정] store.logout() 제거 (새로고침 방지)
+    // 대신 수동으로 상태 초기화
+    if (user) user.value = null
 
-    // 로컬 스토리지 전체 삭제 (남아있는 경로 정보 등 제거)
+    // 2. 로컬 스토리지 클린업
     localStorage.clear()
     sessionStorage.clear()
 
-    // 로그인 페이지로 이동
+    // 3. 로그인 페이지로 부드럽게 이동
     router.replace('/signin')
 
   } catch (error) {
     console.error('Logout Failed:', error)
-    // 에러 발생 시에도 강제 로그아웃 처리
-    store.logout()
+    if (user) user.value = null
     localStorage.clear()
     router.replace('/signin')
   }
