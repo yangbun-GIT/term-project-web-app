@@ -43,7 +43,7 @@
 
         <div class="dropdown">
           <div class="dropdown-content" :class="{ 'light-mobile': theme === 'light' }">
-            <span class="user-info">{{ email || 'Guest' }}님</span>
+            <span class="user-info">{{ user?.email || 'Guest' }}님</span>
             <hr>
             <div class="mobile-actions-menu">
               <div class="menu-item" @click="store.toggleTheme">
@@ -75,7 +75,7 @@
       <div v-if="showMobileMenu" class="mobile-menu-overlay" @click.self="showMobileMenu = false">
         <div class="mobile-menu-content" :class="{ 'light-mobile': theme === 'light' }">
           <div class="mobile-header">
-            <span class="mobile-user">{{ email || 'Guest' }}</span>
+            <span class="mobile-user">{{ user?.email || 'Guest' }}</span>
             <i class="fas fa-times close-menu" @click="showMobileMenu = false"></i>
           </div>
           <div class="mobile-links">
@@ -99,7 +99,8 @@ import SettingsModal from './SettingsModal.vue'
 import { getAuth, signOut } from 'firebase/auth'
 
 const store = useMovieStore()
-const { email, theme, language } = storeToRefs(store)
+// [수정] storeToRefs에서 email이 아닌 user를 가져옵니다.
+const { user, theme, language } = storeToRefs(store)
 
 const isScrolled = ref(false)
 const isHovered = ref(false)
@@ -115,19 +116,18 @@ const route = useRoute()
 const handleScroll = () => isScrolled.value = window.scrollY > 50
 const handleClickOutside = (event: MouseEvent) => { if (showSearch.value && searchContainer.value && !searchContainer.value.contains(event.target as Node)) { showSearch.value = false } }
 
-// [수정] 로그아웃 시 로컬 스토리지 전체 삭제 (Clean Logout)
 const handleLogout = async () => {
   try {
     const auth = getAuth()
-    await signOut(auth) // 1. Firebase 서버 세션 종료
+    await signOut(auth) // Firebase 서버 세션 종료
 
-    store.logout()      // 2. Pinia 스토어 상태 초기화
+    store.logout()      // Pinia 스토어 초기화
 
-    // 3. 로컬 스토리지 전체 삭제 (남아있는 경로 정보 등 제거)
+    // 로컬 스토리지 전체 삭제 (남아있는 경로 정보 등 제거)
     localStorage.clear()
     sessionStorage.clear()
 
-    // 4. 로그인 페이지로 이동 (뒤로가기 방지를 위해 replace 사용)
+    // 로그인 페이지로 이동
     router.replace('/signin')
 
   } catch (error) {
