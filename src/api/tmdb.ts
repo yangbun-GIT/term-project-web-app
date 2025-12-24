@@ -6,9 +6,9 @@ const tmdb = axios.create({
 })
 
 tmdb.interceptors.request.use((config) => {
-    const apiKey = localStorage.getItem('TMDb-Key')
+    // [.env 파일에서 키 가져오기]
+    const apiKey = import.meta.env.VITE_TMDB_API_KEY
     const lang = localStorage.getItem('app-lang') || 'ko-KR'
-    // [수정] 실제 API에 성인 필터 반영
     const includeAdult = localStorage.getItem('include-adult') === 'true'
 
     if (!config.params) config.params = {}

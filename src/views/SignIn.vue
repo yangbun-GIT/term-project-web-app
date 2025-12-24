@@ -10,7 +10,7 @@
         <form @submit.prevent="handleSignUp">
           <h1>회원 가입</h1>
           <div class="social-container">
-            <button type="button" class="social-btn google-btn">
+            <button type="button" class="social-btn google-btn" @click="handleGoogleLogin">
               <i class="fab fa-google"></i> Google로 시작하기
             </button>
           </div>
@@ -23,11 +23,11 @@
             <label>이메일 주소</label>
           </div>
           <div class="input-group">
-            <input type="password" v-model="signupApiKey" required placeholder=" " />
-            <label>비밀번호 (TMDB API KEY)</label>
+            <input type="password" v-model="signupPassword" required placeholder=" " minlength="6" />
+            <label>비밀번호 (6자 이상)</label>
           </div>
           <div class="input-group">
-            <input type="password" v-model="signupApiKeyConfirm" required placeholder=" " />
+            <input type="password" v-model="signupPasswordConfirm" required placeholder=" " />
             <label>비밀번호 확인</label>
           </div>
 
@@ -48,7 +48,7 @@
         <form @submit.prevent="handleLogin">
           <h1>로그인</h1>
           <div class="social-container">
-            <button type="button" class="social-btn google-btn">
+            <button type="button" class="social-btn google-btn" @click="handleGoogleLogin">
               <i class="fab fa-google"></i> Google로 로그인
             </button>
           </div>
@@ -61,8 +61,8 @@
             <label>이메일 주소</label>
           </div>
           <div class="input-group">
-            <input type="password" v-model="loginApiKey" required placeholder=" " />
-            <label>비밀번호 (TMDB API KEY)</label>
+            <input type="password" v-model="loginPassword" required placeholder=" " />
+            <label>비밀번호</label>
           </div>
 
           <div class="options-row">
@@ -86,12 +86,12 @@
           <div class="overlay-panel overlay-left">
             <h1>다시 오셨군요!</h1>
             <p>YJYFLIX의 방대한 콘텐츠가<br>당신을 기다리고 있습니다.</p>
-            <button class="ghost-btn" @click="isSignUpMode = false">로그인하기</button>
+            <button class="ghost-btn" @click="toggleMode">로그인하기</button>
           </div>
           <div class="overlay-panel overlay-right">
             <h1>영화의 바다로<br>떠나볼까요?</h1>
             <p>지금 가입하고 수만 편의 영화와<br>시리즈를 무제한으로 즐기세요.</p>
-            <button class="ghost-btn" @click="isSignUpMode = true">회원가입</button>
+            <button class="ghost-btn" @click="toggleMode">회원가입</button>
           </div>
         </div>
       </div>
@@ -109,15 +109,15 @@ const router = useRouter()
 
 const isSignUpMode = ref(false)
 
-// 로그인 변수
+// [변경] 로그인 변수 (ApiKey -> Password)
 const loginEmail = ref('')
-const loginApiKey = ref('')
+const loginPassword = ref('')
 const rememberMe = ref(false)
 
-// 회원가입 변수
+// [변경] 회원가입 변수 (ApiKey -> Password)
 const signupEmail = ref('')
-const signupApiKey = ref('')
-const signupApiKeyConfirm = ref('')
+const signupPassword = ref('')
+const signupPasswordConfirm = ref('')
 const agreeTerms = ref(false)
 
 // 이메일 유효성 검사
@@ -134,9 +134,25 @@ onMounted(() => {
   }
 })
 
-const handleLogin = () => {
-  if (!loginEmail.value || !loginApiKey.value) {
-    alert('이메일과 API Key를 모두 입력해주세요.')
+// 화면 전환 토글
+const toggleMode = () => {
+  isSignUpMode.value = !isSignUpMode.value
+}
+
+// [신규] 구글 로그인 처리
+const handleGoogleLogin = async () => {
+  try {
+    await store.loginWithGoogle()
+    router.push('/')
+  } catch (e) {
+    alert("구글 로그인에 실패했습니다. 팝업 차단을 확인해주세요.")
+  }
+}
+
+// [수정] 이메일 로그인 처리 (Firebase)
+const handleLogin = async () => {
+  if (!loginEmail.value || !loginPassword.value) {
+    alert('이메일과 비밀번호를 모두 입력해주세요.')
     return
   }
 
@@ -151,19 +167,35 @@ const handleLogin = () => {
     localStorage.removeItem('saved-email')
   }
 
-  store.login(loginEmail.value, loginApiKey.value)
-  alert('로그인에 성공했습니다!')
-  router.push('/')
+  try {
+    // Store의 Firebase 로그인 액션 호출
+    await store.loginWithEmail(loginEmail.value, loginPassword.value)
+    alert('로그인에 성공했습니다!')
+    router.push('/')
+  } catch (error: any) {
+    // Firebase 에러 코드 처리
+    if (error.code === 'auth/invalid-credential') {
+      alert('이메일 또는 비밀번호가 일치하지 않습니다.')
+    } else {
+      alert('로그인 오류: ' + error.message)
+    }
+  }
 }
 
-const handleSignUp = () => {
+// [수정] 회원가입 처리 (Firebase)
+const handleSignUp = async () => {
   if (!isValidEmail(signupEmail.value)) {
     alert('유효한 이메일 형식이 아닙니다.')
     return
   }
 
-  if (signupApiKey.value !== signupApiKeyConfirm.value) {
-    alert('비밀번호(API Key)가 일치하지 않습니다.')
+  if (signupPassword.value.length < 6) {
+    alert('비밀번호는 최소 6자 이상이어야 합니다.')
+    return
+  }
+
+  if (signupPassword.value !== signupPasswordConfirm.value) {
+    alert('비밀번호가 일치하지 않습니다.')
     return
   }
 
@@ -172,12 +204,20 @@ const handleSignUp = () => {
     return
   }
 
-  alert('환영합니다! 회원가입이 완료되었습니다. 로그인해주세요.')
-  isSignUpMode.value = false
-}
+  try {
+    // Store의 Firebase 회원가입 액션 호출
+    await store.registerWithEmail(signupEmail.value, signupPassword.value)
+    alert('환영합니다! 회원가입이 완료되었습니다.')
 
-const toggleMode = () => {
-  isSignUpMode.value = !isSignUpMode.value
+    // 회원가입 성공 시 자동으로 로그인 상태가 되므로 홈으로 이동
+    router.push('/')
+  } catch (error: any) {
+    if (error.code === 'auth/email-already-in-use') {
+      alert('이미 가입된 이메일입니다.')
+    } else {
+      alert('가입 오류: ' + error.message)
+    }
+  }
 }
 </script>
 
@@ -185,6 +225,7 @@ const toggleMode = () => {
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css');
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
 
+/* 기존 스타일 그대로 유지 */
 .auth-page {
   display: flex; justify-content: center; align-items: center; flex-direction: column;
   min-height: 100vh; width: 100%;
