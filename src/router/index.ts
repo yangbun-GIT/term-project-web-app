@@ -1,4 +1,4 @@
-// [수정] createWebHashHistory 임포트 (History -> HashHistory)
+// src/router/index.ts
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import SignIn from '../views/SignIn.vue'
@@ -15,19 +15,12 @@ const routes = [
 ]
 
 const router = createRouter({
-    // [핵심 수정] createWebHistory -> createWebHashHistory 로 변경
-    // 이렇게 하면 주소가 /#/signin 형태로 변하며, 새로고침 해도 404가 안 뜹니다.
+    // 주소에 '#'이 붙는 Hash 모드 사용 (새로고침 시 404 에러 방지)
     history: createWebHashHistory(import.meta.env.BASE_URL),
     routes
 })
 
-router.beforeEach((to, _from, next) => {
-    const apiKey = localStorage.getItem('TMDb-Key')
-    if (to.name !== 'SignIn' && !apiKey) {
-        next({ name: 'SignIn' })
-    } else {
-        next()
-    }
-})
+// [수정 완료] 기존의 API Key 검사 가드(beforeEach)를 삭제했습니다.
+// 이제 Firebase가 로그인 상태를 관리하므로, 라우터에서 강제로 막을 필요가 없습니다.
 
 export default router
