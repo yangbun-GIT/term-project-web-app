@@ -96,7 +96,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import { storeToRefs } from 'pinia'
 import SettingsModal from './SettingsModal.vue'
-// [수정 1] Firebase Auth 함수 임포트
 import { getAuth, signOut } from 'firebase/auth'
 
 const store = useMovieStore()
@@ -116,18 +115,26 @@ const route = useRoute()
 const handleScroll = () => isScrolled.value = window.scrollY > 50
 const handleClickOutside = (event: MouseEvent) => { if (showSearch.value && searchContainer.value && !searchContainer.value.contains(event.target as Node)) { showSearch.value = false } }
 
-// [수정 2] 로그아웃 함수: Firebase 세션 종료 로직 추가
+// [수정] 로그아웃 시 로컬 스토리지 전체 삭제 (Clean Logout)
 const handleLogout = async () => {
   try {
     const auth = getAuth()
-    await signOut(auth) // Firebase 서버에 로그아웃 요청
-    store.logout()      // Pinia 스토어 초기화
-    localStorage.removeItem('user') // 로컬 스토리지 잔여 데이터 삭제 (안전장치)
-    router.replace('/signin') // 로그인 페이지로 이동 (뒤로가기 방지)
+    await signOut(auth) // 1. Firebase 서버 세션 종료
+
+    store.logout()      // 2. Pinia 스토어 상태 초기화
+
+    // 3. 로컬 스토리지 전체 삭제 (남아있는 경로 정보 등 제거)
+    localStorage.clear()
+    sessionStorage.clear()
+
+    // 4. 로그인 페이지로 이동 (뒤로가기 방지를 위해 replace 사용)
+    router.replace('/signin')
+
   } catch (error) {
     console.error('Logout Failed:', error)
-    // 에러가 나더라도 강제로 클라이언트 로그아웃 처리
+    // 에러 발생 시에도 강제 로그아웃 처리
     store.logout()
+    localStorage.clear()
     router.replace('/signin')
   }
 }
@@ -146,7 +153,7 @@ onUnmounted(() => { window.removeEventListener('scroll', handleScroll); window.r
 /* 전역 스타일 */
 html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
 
-/* [수정] 라이트 모드일 때 햄버거 버튼 색상 강제 변경 */
+/* 라이트 모드일 때 햄버거 버튼 색상 강제 변경 */
 body.light-mode .mobile-menu-btn { color: #141414 !important; }
 </style>
 
@@ -163,7 +170,7 @@ body.light-mode .mobile-menu-btn { color: #141414 !important; }
 .navbar.black-nav { background-color: #141414; }
 .navbar.hover-nav { background-color: rgba(0,0,0,0.9); }
 
-/* [추가] 라이트 모드일 때 Navbar 배경 */
+/* 라이트 모드일 때 Navbar 배경 */
 :global(body.light-mode) .navbar.black-nav,
 :global(body.light-mode) .navbar.hover-nav {
   background-color: #ffffff !important;
@@ -239,7 +246,7 @@ body.light-mode .mobile-menu-btn { color: #141414 !important; }
 .mobile-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; }
 .mobile-menu-content { width: 70%; max-width: 280px; height: 100%; background: #141414; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
-/* [수정] 모바일 메뉴 라이트 모드 스타일 강화 */
+/* 모바일 메뉴 라이트 모드 스타일 강화 */
 .mobile-menu-content.light-mobile {
   background: #ffffff;
   color: #333333;
