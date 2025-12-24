@@ -96,6 +96,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useMovieStore } from '../stores/movieStore'
 import { storeToRefs } from 'pinia'
 import SettingsModal from './SettingsModal.vue'
+// [수정 1] Firebase Auth 함수 임포트
+import { getAuth, signOut } from 'firebase/auth'
 
 const store = useMovieStore()
 const { email, theme, language } = storeToRefs(store)
@@ -113,7 +115,23 @@ const route = useRoute()
 
 const handleScroll = () => isScrolled.value = window.scrollY > 50
 const handleClickOutside = (event: MouseEvent) => { if (showSearch.value && searchContainer.value && !searchContainer.value.contains(event.target as Node)) { showSearch.value = false } }
-const handleLogout = () => { store.logout(); router.push('/signin') }
+
+// [수정 2] 로그아웃 함수: Firebase 세션 종료 로직 추가
+const handleLogout = async () => {
+  try {
+    const auth = getAuth()
+    await signOut(auth) // Firebase 서버에 로그아웃 요청
+    store.logout()      // Pinia 스토어 초기화
+    localStorage.removeItem('user') // 로컬 스토리지 잔여 데이터 삭제 (안전장치)
+    router.replace('/signin') // 로그인 페이지로 이동 (뒤로가기 방지)
+  } catch (error) {
+    console.error('Logout Failed:', error)
+    // 에러가 나더라도 강제로 클라이언트 로그아웃 처리
+    store.logout()
+    router.replace('/signin')
+  }
+}
+
 const handleLogoClick = () => { if (route.path === '/') window.scrollTo({ top: 0, behavior: 'smooth' }); else router.push('/') }
 const changeLang = () => { store.setLanguage(language.value) }
 const toggleSearch = () => { showSearch.value = !showSearch.value; if (showSearch.value) nextTick(() => searchInput.value?.focus()) }
