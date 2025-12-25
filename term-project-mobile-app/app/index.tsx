@@ -72,6 +72,8 @@ function LoginScreen() {
     const expoConfig = Constants.expoConfig;
     const uri = `https://auth.expo.io/@${expoConfig?.owner}/${expoConfig?.slug}`;
 
+    console.log("👉 현재 앱이 만든 리디렉션 주소:", uri);
+
     // [추가] 구글 로그인 요청 훅
     const [request, response, promptAsync] = Google.useAuthRequest({
         // ⚠️ TODO: 아까 구글 클라우드 콘솔에서 복사한 '웹 클라이언트 ID'를 아래 따옴표 안에 넣으세요!
