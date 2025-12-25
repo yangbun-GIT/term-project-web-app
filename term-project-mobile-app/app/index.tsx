@@ -4,12 +4,20 @@ import {
     Image, SafeAreaView, Modal, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Alert
 } from 'react-native';
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+// [수정] GoogleAuthProvider, signInWithCredential 추가 임포트
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import {
     getFirestore, collection, query, orderBy, onSnapshot,
     addDoc, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove
 } from "firebase/firestore";
 import axios from 'axios';
+
+// [추가] 구글 로그인 라이브러리 임포트
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+
+// [추가] 웹 브라우저 팝업 처리를 위해 필수
+WebBrowser.maybeCompleteAuthSession();
 
 // =================================================================
 // ⚙️ 1. 설정 (API Key & Firebase Config)
@@ -51,11 +59,48 @@ export default function App() {
 }
 
 // =================================================================
-// 🔐 로그인 화면
+// 🔐 로그인 화면 (구글 로그인 추가됨)
 // =================================================================
 function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+
+    // [추가] 구글 로그인 요청 훅
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        // ⚠️ TODO: 아까 구글 클라우드 콘솔에서 복사한 '웹 클라이언트 ID'를 아래 따옴표 안에 넣으세요!
+        webClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
+        responseType: "id_token",
+    });
+
+    // [추가] 구글 로그인 응답 처리
+    useEffect(() => {
+        if (response?.type === 'success') {
+            // 1. 응답 데이터가 제대로 왔는지 콘솔에 출력해봅니다.
+            console.log("구글 응답 데이터:", JSON.stringify(response, null, 2));
+
+            const { id_token } = response.params;
+
+            // 2. [중요] 토큰이 있는지 먼저 확인하고, 없으면 에러 처리를 합니다.
+            if (!id_token) {
+                Alert.alert("설정 오류", "구글에서 ID Token을 반환하지 않았습니다.\nClient ID 설정을 확인해주세요.");
+                return;
+            }
+
+            // 토큰이 있을 때만 Firebase 로그인을 시도합니다.
+            const credential = GoogleAuthProvider.credential(id_token);
+
+            signInWithCredential(auth, credential)
+                .then(() => {
+                    console.log("Firebase 로그인 성공!");
+                })
+                .catch((error) => {
+                    Alert.alert("로그인 실패", error.message);
+                });
+        }
+        else if (response?.type === 'error') {
+            Alert.alert("인증 오류", "구글 로그인 과정에서 오류가 발생했습니다.");
+        }
+    }, [response]);
 
     const handleLogin = async () => {
         try {
@@ -77,8 +122,19 @@ function LoginScreen() {
                 style={styles.input} placeholder="비밀번호" placeholderTextColor="#888"
                 value={password} onChangeText={setPassword} secureTextEntry
             />
+
+            {/* 이메일 로그인 버튼 */}
             <TouchableOpacity style={styles.redBtn} onPress={handleLogin}>
                 <Text style={styles.btnText}>로그인</Text>
+            </TouchableOpacity>
+
+            {/* [추가] 구글 로그인 버튼 */}
+            <TouchableOpacity
+                style={[styles.googleBtn, { marginTop: 15 }]}
+                disabled={!request}
+                onPress={() => promptAsync()}
+            >
+                <Text style={[styles.btnText, { color: '#000' }]}>Google 계정으로 로그인</Text>
             </TouchableOpacity>
         </View>
     );
@@ -380,7 +436,7 @@ function ChatRoom({ user, movie, wishlist, onClose }: any) {
 }
 
 // =================================================================
-// 🎨 스타일 (Top 버튼 위치: right 30, bottom 15로 수정)
+// 🎨 스타일
 // =================================================================
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#000', paddingTop: Platform.OS === 'android' ? 25 : 0 },
@@ -397,6 +453,8 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#333', color: '#fff', padding: 15, borderRadius: 5, marginBottom: 15 },
     redBtn: { backgroundColor: '#e50914', padding: 15, borderRadius: 5, alignItems: 'center' },
     btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    // [추가] 구글 로그인 버튼 스타일
+    googleBtn: { backgroundColor: '#fff', padding: 15, borderRadius: 5, alignItems: 'center' },
 
     header: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#333' },
 
@@ -427,11 +485,10 @@ const styles = StyleSheet.create({
     inputField: { flex: 1, backgroundColor: '#333', color: '#fff', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, marginRight: 10 },
     sendText: { color: '#e50914', fontWeight: 'bold', fontSize: 16 },
 
-    // [수정] Top 버튼 위치 조정 (right: 30, bottom: 15)
     topBtn: {
         position: 'absolute',
-        bottom: 15, // 아래로 더 내림
-        right: 30,  // 오른쪽으로 이동 (기존 60 -> 30)
+        bottom: 15,
+        right: 30,
         backgroundColor: '#e50914',
         width: 50,
         height: 50,
