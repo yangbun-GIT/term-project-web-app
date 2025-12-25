@@ -4,27 +4,30 @@ import {
     Image, SafeAreaView, Modal, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Alert
 } from 'react-native';
 import { initializeApp } from "firebase/app";
-// [수정] GoogleAuthProvider, signInWithCredential 추가 임포트
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential } from "firebase/auth";
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithCredential
+} from "firebase/auth";
 import {
     getFirestore, collection, query, orderBy, onSnapshot,
     addDoc, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove
 } from "firebase/firestore";
 import axios from 'axios';
 
-// [추가] 구글 로그인 라이브러리 임포트
+// [필수] 구글 로그인 및 설정 라이브러리
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { makeRedirectUri } from 'expo-auth-session';
-
-// 👇 [핵심 추가] 이 줄이 있어야 'Constants.expoConfig' 에러가 사라집니다!
 import Constants from 'expo-constants';
 
-// [추가] 웹 브라우저 팝업 처리를 위해 필수
+// [필수] 웹 브라우저 팝업 처리
 WebBrowser.maybeCompleteAuthSession();
 
 // =================================================================
-// ⚙️ 1. 설정 (API Key & Firebase Config)
+// ⚙️ 1. 설정
 // =================================================================
 
 const TMDB_API_KEY = "2880ac77339fca10a79bd2e5fd5119d1";
@@ -39,7 +42,7 @@ const firebaseConfig = {
     measurementId: "G-XG33C395Y0"
 };
 
-// Firebase 초기화
+// Firebase 초기화 (로그인 유지 기능 제거 -> 기본 설정으로 복귀)
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -63,54 +66,41 @@ export default function App() {
 }
 
 // =================================================================
-// 🔐 로그인 화면 (구글 로그인 추가됨)
+// 🔐 로그인 화면 (웹/앱 분기 처리 적용됨)
 // =================================================================
 function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
+    // ✅ [핵심 수정] 플랫폼에 따라 리디렉션 주소 다르게 설정
     const expoConfig = Constants.expoConfig;
-    const uri = `https://auth.expo.io/@${expoConfig?.owner}/${expoConfig?.slug}`;
 
-    console.log("👉 현재 앱이 만든 리디렉션 주소:", uri);
+    // 1. 앱(Android/Expo Go)용 주소: https://auth.expo.io/@아이디/프로젝트명
+    const nativeRedirectUri = `https://auth.expo.io/@${expoConfig?.owner}/${expoConfig?.slug}`;
 
-    // [추가] 구글 로그인 요청 훅
+    // 2. 웹(Web)일 때는 undefined (자동으로 localhost 사용), 앱일 땐 위 주소 사용
+    const redirectUri = Platform.OS === 'web' ? undefined : nativeRedirectUri;
+
+    // [확인용 로그]
+    console.log(`[Login] 플랫폼: ${Platform.OS}, 리디렉션 주소: ${redirectUri}`);
+
     const [request, response, promptAsync] = Google.useAuthRequest({
-        // ⚠️ TODO: 아까 구글 클라우드 콘솔에서 복사한 '웹 클라이언트 ID'를 아래 따옴표 안에 넣으세요!
         webClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
         androidClientId: '676001090912-dvaqvqdc3jdbhlepulej6edvs018c9g6.apps.googleusercontent.com',
-
         responseType: "id_token",
-        redirectUri: uri,
+        // ✅ 여기서 분기 처리된 주소를 사용합니다.
+        redirectUri: redirectUri,
     });
 
-    // [추가] 구글 로그인 응답 처리
     useEffect(() => {
         if (response?.type === 'success') {
-            // 1. 응답 데이터가 제대로 왔는지 콘솔에 출력해봅니다.
-            console.log("구글 응답 데이터:", JSON.stringify(response, null, 2));
-
             const { id_token } = response.params;
+            if (!id_token) return;
 
-            // 2. [중요] 토큰이 있는지 먼저 확인하고, 없으면 에러 처리를 합니다.
-            if (!id_token) {
-                Alert.alert("설정 오류", "구글에서 ID Token을 반환하지 않았습니다.\nClient ID 설정을 확인해주세요.");
-                return;
-            }
-
-            // 토큰이 있을 때만 Firebase 로그인을 시도합니다.
             const credential = GoogleAuthProvider.credential(id_token);
-
             signInWithCredential(auth, credential)
-                .then(() => {
-                    console.log("Firebase 로그인 성공!");
-                })
-                .catch((error) => {
-                    Alert.alert("로그인 실패", error.message);
-                });
-        }
-        else if (response?.type === 'error') {
-            Alert.alert("인증 오류", "구글 로그인 과정에서 오류가 발생했습니다.");
+                .then(() => console.log("Firebase 로그인 성공!"))
+                .catch((error) => Alert.alert("로그인 실패", error.message));
         }
     }, [response]);
 
@@ -118,7 +108,7 @@ function LoginScreen() {
         try {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
-            alert("로그인 실패: 이메일과 비밀번호를 확인하세요.");
+            alert("로그인 실패");
         }
     };
 
@@ -135,12 +125,10 @@ function LoginScreen() {
                 value={password} onChangeText={setPassword} secureTextEntry
             />
 
-            {/* 이메일 로그인 버튼 */}
             <TouchableOpacity style={styles.redBtn} onPress={handleLogin}>
                 <Text style={styles.btnText}>로그인</Text>
             </TouchableOpacity>
 
-            {/* [추가] 구글 로그인 버튼 */}
             <TouchableOpacity
                 style={[styles.googleBtn, { marginTop: 15 }]}
                 disabled={!request}
@@ -153,7 +141,7 @@ function LoginScreen() {
 }
 
 // =================================================================
-// 🏠 메인 탭 화면
+// 🏠 메인 탭 화면 (기존 동일)
 // =================================================================
 function MainTabScreen({ user }: { user: any }) {
     const [currentTab, setCurrentTab] = useState('home');
@@ -323,7 +311,7 @@ function WishlistScreen({ wishlist, onSelectMovie }: any) {
 }
 
 // =================================================================
-// 💬 [공통] 영화 그리드 (Top 버튼 위치 조정됨)
+// 💬 [공통] 영화 그리드
 // =================================================================
 function MovieGrid({ movies, onSelectMovie, emptyMessage, onEndReached, loading }: any) {
     const flatListRef = useRef<FlatList>(null);
@@ -465,7 +453,6 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#333', color: '#fff', padding: 15, borderRadius: 5, marginBottom: 15 },
     redBtn: { backgroundColor: '#e50914', padding: 15, borderRadius: 5, alignItems: 'center' },
     btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-    // [추가] 구글 로그인 버튼 스타일
     googleBtn: { backgroundColor: '#fff', padding: 15, borderRadius: 5, alignItems: 'center' },
 
     header: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#333' },
