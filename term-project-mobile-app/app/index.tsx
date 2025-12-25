@@ -21,6 +21,7 @@ import axios from 'axios';
 // [필수] 구글 로그인 및 설정 라이브러리
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session'; // ✅ [추가] 중요!
 import Constants from 'expo-constants';
 
 // [필수] 웹 브라우저 팝업 처리
@@ -42,7 +43,7 @@ const firebaseConfig = {
     measurementId: "G-XG33C395Y0"
 };
 
-// Firebase 초기화 (로그인 유지 기능 제거 -> 기본 설정으로 복귀)
+// Firebase 초기화
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -66,42 +67,55 @@ export default function App() {
 }
 
 // =================================================================
-// 🔐 로그인 화면 (웹/앱 분기 처리 적용됨)
+// 🔐 로그인 화면 (최종 수정됨)
 // =================================================================
 function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    // ✅ [핵심 수정] 플랫폼에 따라 리디렉션 주소 다르게 설정
+    // 1. [핵심] 리디렉션 주소 생성 로직
     const expoConfig = Constants.expoConfig;
 
-    // 1. 앱(Android/Expo Go)용 주소: https://auth.expo.io/@아이디/프로젝트명
-    const nativeRedirectUri = `https://auth.expo.io/@${expoConfig?.owner}/${expoConfig?.slug}`;
+    // 구글 콘솔에 등록된 Proxy 주소 (앱용)
+    const proxyRedirectUri = `https://auth.expo.io/@${expoConfig?.owner}/${expoConfig?.slug}`;
 
-    // 2. 웹(Web)일 때는 undefined (자동으로 localhost 사용), 앱일 땐 위 주소 사용
-    const redirectUri = Platform.OS === 'web' ? undefined : nativeRedirectUri;
+    // 웹/앱 분기 처리
+    // 앱(Android/Expo Go)일 경우: 무조건 Proxy 주소를 사용해야 구글이 승인해줍니다.
+    // 웹(Web)일 경우: undefined로 두면 자동으로 localhost를 잡습니다.
+    const redirectUri = Platform.OS === 'web' ? undefined : proxyRedirectUri;
 
     // [확인용 로그]
-    console.log(`[Login] 플랫폼: ${Platform.OS}, 리디렉션 주소: ${redirectUri}`);
+    console.log(`[Login] 사용 중인 리디렉션 주소: ${redirectUri}`);
 
     const [request, response, promptAsync] = Google.useAuthRequest({
+        // ✅ [Web Client ID] 구글 콘솔에 주소가 등록된 ID
         webClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
+
+        // ✅ [중요] Expo Go에서는 안드로이드에서도 'Web Client ID'를 써야 합니다.
+        // (이걸 안드로이드 전용 ID로 바꾸면 'redirect_uri_mismatch' 오류가 납니다!)
         androidClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
 
         responseType: "id_token",
-        // ✅ 여기서 분기 처리된 주소를 사용합니다.
+
+        // 생성한 주소 적용
         redirectUri: redirectUri,
     });
 
     useEffect(() => {
         if (response?.type === 'success') {
             const { id_token } = response.params;
-            if (!id_token) return;
+            if (!id_token) {
+                Alert.alert("오류", "토큰을 받아오지 못했습니다.");
+                return;
+            }
 
             const credential = GoogleAuthProvider.credential(id_token);
             signInWithCredential(auth, credential)
                 .then(() => console.log("Firebase 로그인 성공!"))
                 .catch((error) => Alert.alert("로그인 실패", error.message));
+        } else if (response?.type === 'error') {
+            Alert.alert("인증 오류", "로그인 중 문제가 발생했습니다.");
+            console.error(response.error);
         }
     }, [response]);
 
@@ -109,7 +123,7 @@ function LoginScreen() {
         try {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
-            alert("로그인 실패");
+            alert("로그인 실패: 이메일/비밀번호를 확인하세요.");
         }
     };
 
@@ -142,7 +156,7 @@ function LoginScreen() {
 }
 
 // =================================================================
-// 🏠 메인 탭 화면 (기존 동일)
+// 🏠 메인 탭 화면 (기존 코드 유지)
 // =================================================================
 function MainTabScreen({ user }: { user: any }) {
     const [currentTab, setCurrentTab] = useState('home');
