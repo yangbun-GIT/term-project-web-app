@@ -15,6 +15,10 @@ import axios from 'axios';
 // [추가] 구글 로그인 라이브러리 임포트
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
+
+// 👇 [핵심 추가] 이 줄이 있어야 'Constants.expoConfig' 에러가 사라집니다!
+import Constants from 'expo-constants';
 
 // [추가] 웹 브라우저 팝업 처리를 위해 필수
 WebBrowser.maybeCompleteAuthSession();
@@ -65,14 +69,17 @@ function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
+    const expoConfig = Constants.expoConfig;
+    const uri = `https://auth.expo.io/@${expoConfig?.owner}/${expoConfig?.slug}`;
+
     // [추가] 구글 로그인 요청 훅
     const [request, response, promptAsync] = Google.useAuthRequest({
         // ⚠️ TODO: 아까 구글 클라우드 콘솔에서 복사한 '웹 클라이언트 ID'를 아래 따옴표 안에 넣으세요!
         webClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
-
         androidClientId: '676001090912-dvaqvqdc3jdbhlepulej6edvs018c9g6.apps.googleusercontent.com',
 
         responseType: "id_token",
+        redirectUri: uri,
     });
 
     // [추가] 구글 로그인 응답 처리

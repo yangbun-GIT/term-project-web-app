@@ -2,6 +2,7 @@
   "expo": {
     "name": "term-project-mobile-app",
     "slug": "term-project-mobile-app",
+    "owner": "test_term",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
