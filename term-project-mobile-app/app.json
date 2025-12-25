@@ -2,17 +2,18 @@
   "expo": {
     "name": "term-project-mobile-app",
     "slug": "term-project-mobile-app",
-    "owner": "test_term",
+    "owner": "termtestmobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "termprojectmobileapp",
+    "scheme": "com.term.mobileapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.term.mobileapp",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -45,6 +46,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "784c52a2-8542-4de2-b59c-87f746801354"
+      }
     }
   }
 }

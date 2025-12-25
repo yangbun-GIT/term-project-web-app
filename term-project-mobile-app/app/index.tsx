@@ -21,7 +21,7 @@ import axios from 'axios';
 // [필수] 구글 로그인 및 설정 라이브러리
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { makeRedirectUri } from 'expo-auth-session'; // ✅ [추가] 중요!
+import { makeRedirectUri } from 'expo-auth-session';
 import Constants from 'expo-constants';
 
 // [필수] 웹 브라우저 팝업 처리
@@ -73,32 +73,18 @@ function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    // 1. [핵심] 리디렉션 주소 생성 로직
-    const expoConfig = Constants.expoConfig;
-
-    // 구글 콘솔에 등록된 Proxy 주소 (앱용)
-    const proxyRedirectUri = `https://auth.expo.io/@${expoConfig?.owner}/${expoConfig?.slug}`;
-
-    // 웹/앱 분기 처리
-    // 앱(Android/Expo Go)일 경우: 무조건 Proxy 주소를 사용해야 구글이 승인해줍니다.
-    // 웹(Web)일 경우: undefined로 두면 자동으로 localhost를 잡습니다.
-    const redirectUri = Platform.OS === 'web' ? undefined : proxyRedirectUri;
-
-    // [확인용 로그]
-    console.log(`[Login] 사용 중인 리디렉션 주소: ${redirectUri}`);
-
+    // [간단해진 설정]
+    // Development Build는 진짜 앱이므로, 복잡한 리디렉션 설정 없이 ID만 있으면 됩니다.
     const [request, response, promptAsync] = Google.useAuthRequest({
-        // ✅ [Web Client ID] 구글 콘솔에 주소가 등록된 ID
+        // 안드로이드 앱용 ID (구글 콘솔에서 만든 것)
+        androidClientId: '676001090912-icm6r01sdfofujokne28g9vlgnu071hc.apps.googleusercontent.com',
+        // 웹용 ID (혹시 모를 호환성을 위해 유지)
         webClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
 
-        // ✅ [중요] Expo Go에서는 안드로이드에서도 'Web Client ID'를 써야 합니다.
-        // (이걸 안드로이드 전용 ID로 바꾸면 'redirect_uri_mismatch' 오류가 납니다!)
-        androidClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
-
-        responseType: "id_token",
-
-        // 생성한 주소 적용
-        redirectUri: redirectUri,
+        redirectUri: makeRedirectUri({
+            scheme: 'com.term.mobileapp',
+            path: ''
+        }),
     });
 
     useEffect(() => {
@@ -113,9 +99,6 @@ function LoginScreen() {
             signInWithCredential(auth, credential)
                 .then(() => console.log("Firebase 로그인 성공!"))
                 .catch((error) => Alert.alert("로그인 실패", error.message));
-        } else if (response?.type === 'error') {
-            Alert.alert("인증 오류", "로그인 중 문제가 발생했습니다.");
-            console.error(response.error);
         }
     }, [response]);
 
@@ -123,7 +106,7 @@ function LoginScreen() {
         try {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
-            alert("로그인 실패: 이메일/비밀번호를 확인하세요.");
+            Alert.alert("로그인 실패", "이메일/비밀번호를 확인하세요.");
         }
     };
 
