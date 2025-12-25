@@ -69,6 +69,9 @@ function LoginScreen() {
     const [request, response, promptAsync] = Google.useAuthRequest({
         // ⚠️ TODO: 아까 구글 클라우드 콘솔에서 복사한 '웹 클라이언트 ID'를 아래 따옴표 안에 넣으세요!
         webClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
+
+        androidClientId: '676001090912-dvaqvqdc3jdbhlepulej6edvs018c9g6.apps.googleusercontent.com',
+
         responseType: "id_token",
     });
 
