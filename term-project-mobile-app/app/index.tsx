@@ -86,7 +86,8 @@ function LoginScreen() {
 
     const [request, response, promptAsync] = Google.useAuthRequest({
         webClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
-        androidClientId: '676001090912-dvaqvqdc3jdbhlepulej6edvs018c9g6.apps.googleusercontent.com',
+        androidClientId: '676001090912-spqscd6d8qur62dr9gv6l3unjfh0nt4l.apps.googleusercontent.com',
+
         responseType: "id_token",
         // ✅ 여기서 분기 처리된 주소를 사용합니다.
         redirectUri: redirectUri,
